@@ -3,121 +3,136 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>字彙王 - Word King</title>
+    <title>字彙王 - Word King Professional</title>
     <style>
         :root {
-            --primary-blue: #1A237E; /* 深海藍 */
+            --primary-blue: #1A237E;
             --light-blue: #E8EAF6;
             --accent-orange: #FF7043;
             --white: #FFFFFF;
+            --gray: #9E9E9E;
         }
 
         body {
             font-family: 'Inter', 'Noto Sans TC', sans-serif;
             background-color: var(--light-blue);
-            background-image: radial-gradient(circle at 20% 20%, #e0e7ff 0%, transparent 40%),
-                              radial-gradient(circle at 80% 80%, #d1fae5 0%, transparent 40%);
             margin: 0; padding: 20px;
             min-height: 100vh; display: flex; align-items: center; justify-content: center;
-            overflow-x: hidden;
         }
 
         .screen {
-            background: rgba(255, 255, 255, 0.9);
+            background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
-            padding: 40px; border-radius: 30px;
+            padding: 30px; border-radius: 30px;
             box-shadow: 0 20px 50px rgba(26, 35, 126, 0.1);
             width: 100%; max-width: 450px;
             display: none; text-align: center;
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            animation: slideUp 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+            animation: fadeIn 0.4s ease-out;
         }
-
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(30px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
         .active { display: block; }
 
-        h1 { color: var(--primary-blue); font-size: 2.5rem; letter-spacing: -1px; margin-bottom: 30px; }
+        h1 { color: var(--primary-blue); font-size: 2rem; margin-bottom: 20px; }
         
-        input {
-            width: 100%; padding: 15px; margin: 10px 0;
-            border: 2px solid #E0E0E0; border-radius: 15px;
-            font-size: 1rem; box-sizing: border-box; transition: 0.3s;
-            background: #FAFAFA;
+        /* 表單元件 */
+        input, select {
+            width: 100%; padding: 12px; margin: 8px 0;
+            border: 2px solid #EEE; border-radius: 12px;
+            font-size: 1rem; box-sizing: border-box;
         }
-        input:focus { border-color: var(--primary-blue); outline: none; background: white; }
-
         button {
             background: var(--primary-blue); color: white; border: none;
-            padding: 16px; width: 100%; font-size: 1.1rem;
-            border-radius: 15px; cursor: pointer; margin: 10px 0;
-            font-weight: 700; transition: all 0.3s;
-            box-shadow: 0 4px 15px rgba(26, 35, 126, 0.2);
+            padding: 15px; width: 100%; font-size: 1.1rem;
+            border-radius: 12px; cursor: pointer; margin: 10px 0;
+            font-weight: 700; transition: 0.2s;
         }
-        button:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(26, 35, 126, 0.3); }
-        button:active { transform: scale(0.98); }
+        button:hover { opacity: 0.9; transform: translateY(-2px); }
 
-        /* 遊戲選項 */
-        .option-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 25px; }
+        /* 設定面板 */
+        .settings-panel {
+            background: var(--light-blue); padding: 15px;
+            border-radius: 15px; margin: 15px 0; text-align: left;
+        }
+        .settings-panel label { font-size: 0.85rem; font-weight: bold; color: var(--primary-blue); }
+
+        /* 遊戲倒數條 */
+        .timer-container {
+            width: 100%; height: 8px; background: #EEE;
+            border-radius: 10px; margin: 15px 0; overflow: hidden;
+        }
+        #timer-bar {
+            width: 100%; height: 100%; background: var(--primary-blue);
+            transition: width 0.1s linear;
+        }
+
+        .option-grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 15px; }
         .btn-option {
             background: white; color: var(--primary-blue);
-            border: 2px solid var(--light-blue); height: 70px;
-            font-size: 1.1rem; border-radius: 18px; width: 100%; margin: 0;
-            box-shadow: 0 4px 0 var(--light-blue);
+            border: 2px solid var(--light-blue); padding: 15px;
+            font-size: 1rem; border-radius: 12px; cursor: pointer;
         }
-        .btn-option:hover { background: var(--light-blue); border-color: var(--primary-blue); }
+        .btn-correct { background: #4CAF50 !important; color: white !important; }
+        .btn-wrong { background: #EF5350 !important; color: white !important; }
         
-        .btn-correct { background: #4CAF50 !important; color: white !important; border-color: #4CAF50 !important; }
-        .btn-wrong { background: #EF5350 !important; color: white !important; border-color: #EF5350 !important; opacity: 0.7; }
-
-        .score-badge { background: var(--primary-blue); color: white; padding: 5px 15px; border-radius: 20px; font-weight: bold; }
-        .room-id-box { background: var(--light-blue); padding: 20px; border-radius: 20px; margin: 20px 0; }
-        .room-id-text { font-size: 3.5rem; font-weight: 900; color: var(--primary-blue); letter-spacing: 8px; }
+        .score-badge { background: var(--primary-blue); color: white; padding: 5px 12px; border-radius: 20px; font-weight: bold; font-size: 0.8rem; }
     </style>
 </head>
 <body>
 
     <div id="screen-login" class="screen active">
-        <h1 style="margin-top:0;">字彙王<br><span style="font-size:1rem; opacity:0.6;">WORD KING</span></h1>
-        <input type="text" id="username" placeholder="請輸入冒險者名稱" value="玩家1">
+        <h1>字彙王</h1>
+        <input type="text" id="username" placeholder="輸入名稱" value="玩家1">
         <button onclick="createRoom()">👑 創建戰局</button>
-        <div style="margin: 20px; color: #999;">— 或使用密碼加入 —</div>
-        <input type="tel" id="room-code-input" placeholder="4 位數密碼" maxlength="4" style="text-align:center;">
-        <button onclick="joinRoom()" style="background:transparent; color:var(--primary-blue); border:2px solid var(--primary-blue); box-shadow:none;">⚔️ 加入挑戰</button>
+        <div style="margin:15px; color:#AAA;">— 或 —</div>
+        <input type="tel" id="room-code-input" placeholder="4 位數密碼" maxlength="4">
+        <button onclick="joinRoom()" style="background:#5C6BC0;">⚔️ 加入挑戰</button>
     </div>
 
     <div id="screen-lobby" class="screen">
-        <h2>等待挑戰者...</h2>
-        <div class="room-id-box">
-            <div id="display-room-code" class="room-id-text">----</div>
+        <h2>房號：<span id="display-room-code" style="color:var(--primary-blue)">----</span></h2>
+        
+        <div id="host-controls" style="display:none;" class="settings-panel">
+            <label>⏱ 每題時間 (秒)</label>
+            <select id="set-time">
+                <option value="5">5 秒 (極速)</option>
+                <option value="10" selected>10 秒 (標準)</option>
+                <option value="15">15 秒 (放鬆)</option>
+                <option value="20">20 秒 (漫長)</option>
+            </select>
+            <label>📝 總題數 (上限 20)</label>
+            <select id="set-count">
+                <option value="5">5 題</option>
+                <option value="10" selected>10 題</option>
+                <option value="15">15 題</option>
+                <option value="20">20 題</option>
+            </select>
         </div>
-        <ul id="lobby-player-list" style="list-style:none; padding:0; margin: 20px 0;"></ul>
-        <button id="btn-start" onclick="startGame()" style="display:none; background: var(--accent-orange);">🔥 全員到齊，開戰！</button>
-        <p id="wait-msg" style="color:#666; font-style:italic;">等待房主發起挑戰...</p>
+
+        <ul id="lobby-player-list" style="list-style:none; padding:0;"></ul>
+        <button id="btn-start" onclick="startGame()" style="display:none; background: var(--accent-orange);">🔥 開始戰鬥</button>
+        <p id="wait-msg">等待房主設定...</p>
     </div>
 
     <div id="screen-game" class="screen">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-            <span id="q-counter" class="score-badge" style="background:#eee; color:#333;">Q1</span>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span id="q-counter" class="score-badge">Q1</span>
             <span id="my-score" class="score-badge">0 PTS</span>
         </div>
-        <h2 id="question-text" style="min-height: 80px; line-height: 1.4;">正在準備題目...</h2>
+        <div class="timer-container"><div id="timer-bar"></div></div>
+        <h2 id="question-text">準備中...</h2>
         <div class="option-grid">
-            <button class="btn-option" onclick="submitAnswer(0)" id="opt-0">A</button>
-            <button class="btn-option" onclick="submitAnswer(1)" id="opt-1">B</button>
-            <button class="btn-option" onclick="submitAnswer(2)" id="opt-2">C</button>
-            <button class="btn-option" onclick="submitAnswer(3)" id="opt-3">D</button>
+            <button class="btn-option" onclick="submitAnswer(0)" id="opt-0"></button>
+            <button class="btn-option" onclick="submitAnswer(1)" id="opt-1"></button>
+            <button class="btn-option" onclick="submitAnswer(2)" id="opt-2"></button>
+            <button class="btn-option" onclick="submitAnswer(3)" id="opt-3"></button>
         </div>
-        <div id="status-msg" style="margin-top:20px; font-weight:bold; color:var(--accent-orange);"></div>
+        <div id="status-msg" style="margin-top:15px; font-weight:bold; color:var(--accent-orange);"></div>
     </div>
 
     <div id="screen-result" class="screen">
-        <h1 style="font-size:3rem;">最終排行</h1>
-        <div id="result-list" style="text-align:left; margin:30px 0;"></div>
-        <button onclick="location.reload()">🎮 再來一局</button>
+        <h1>最終排名</h1>
+        <div id="result-list"></div>
+        <button onclick="location.reload()">🎮 再玩一局</button>
     </div>
 
     <script type="module">
@@ -139,30 +154,29 @@
 
         let myId = "u_" + Math.random().toString(36).substr(2, 5);
         let myRoomId, isHost = false;
+        let timerInterval, gameStartTime;
 
         window.createRoom = async () => {
-            const name = document.getElementById('username').value || '未知玩家';
+            const name = document.getElementById('username').value || '玩家';
             myRoomId = Math.floor(1000 + Math.random() * 9000).toString();
             isHost = true;
             
             const qSnap = await get(ref(db, 'global_questions'));
-            const questions = qSnap.exists() ? qSnap.val() : [{q:"No questions found.", options:["","","",""], ans:0}];
+            const allQs = qSnap.exists() ? qSnap.val() : [{q:"無題目", options:["","","",""], ans:0}];
 
             await set(ref(db, 'rooms/' + myRoomId), {
                 state: 'lobby',
                 currentQIndex: -1,
-                showResult: false,
+                settings: { timeLimit: 10, maxQs: 10 },
                 players: { [myId]: { name, score: 0, answer: -1 } },
-                questions: questions
+                allQuestions: allQs // 先存全庫，開賽再抽
             });
             initLobby();
         };
 
         window.joinRoom = async () => {
-            const name = document.getElementById('username').value || '未知玩家';
+            const name = document.getElementById('username').value || '玩家';
             myRoomId = document.getElementById('room-code-input').value;
-            if(!myRoomId) return;
-
             const snap = await get(ref(db, 'rooms/' + myRoomId));
             if(snap.exists() && snap.val().state === 'lobby') {
                 await update(ref(db, `rooms/${myRoomId}/players/${myId}`), { name, score: 0, answer: -1 });
@@ -173,6 +187,7 @@
         function initLobby() {
             document.getElementById('display-room-code').innerText = myRoomId;
             showScreen('screen-lobby');
+            if(isHost) document.getElementById('host-controls').style.display = 'block';
             if(isHost) document.getElementById('btn-start').style.display = 'block';
 
             onValue(ref(db, 'rooms/' + myRoomId), (snap) => {
@@ -181,50 +196,118 @@
                 
                 const players = Object.values(data.players);
                 document.getElementById('lobby-player-list').innerHTML = players.map(p => 
-                    `<li style="background:white; padding:12px; margin:8px; border-radius:12px; box-shadow:0 2px 5px rgba(0,0,0,0.05); font-weight:bold;">👤 ${p.name}</li>`).join('');
+                    `<li style="padding:10px; border-bottom:1px solid #EEE;">👤 ${p.name}</li>`).join('');
 
                 if(data.state === 'playing') renderGame(data);
                 if(data.state === 'finished') renderResult(data.players);
             });
         }
 
-        window.startGame = () => update(ref(db, 'rooms/' + myRoomId), { state: 'playing', currentQIndex: 0 });
+        window.startGame = async () => {
+            const timeLimit = parseInt(document.getElementById('set-time').value);
+            const maxQs = parseInt(document.getElementById('set-count').value);
+            
+            const snap = await get(ref(db, 'rooms/' + myRoomId));
+            const allQs = snap.val().allQuestions;
+            // 隨機抽選題目
+            const shuffled = allQs.sort(() => 0.5 - Math.random()).slice(0, maxQs);
 
-        window.submitAnswer = (idx) => {
-            update(ref(db, `rooms/${myRoomId}/players/${myId}`), { answer: idx });
-            document.getElementById('status-msg').innerText = "答案已鎖定，等待中...";
-            if(isHost) checkAnswers();
+            update(ref(db, 'rooms/' + myRoomId), { 
+                state: 'playing', 
+                currentQIndex: 0,
+                settings: { timeLimit, maxQs },
+                questions: shuffled
+            });
         };
 
-        async function checkAnswers() {
-            setTimeout(async () => {
-                const s = await get(ref(db, 'rooms/' + myRoomId));
-                const r = s.val();
-                if(Object.values(r.players).every(p => p.answer !== -1) && !r.showResult) {
-                    const q = r.questions[r.currentQIndex];
-                    const up = { showResult: true };
-                    Object.entries(r.players).forEach(([pid, p]) => {
-                        if(p.answer === q.ans) up[`players/${pid}/score`] = p.score + 100;
-                        up[`players/${pid}/answer`] = -1;
-                    });
-                    await update(ref(db, 'rooms/' + myRoomId), up);
-                    setTimeout(() => {
-                        const next = r.currentQIndex + 1;
-                        if(next >= r.questions.length) update(ref(db, 'rooms/' + myRoomId), { state: 'finished' });
-                        else update(ref(db, 'rooms/' + myRoomId), { currentQIndex: next, showResult: false });
-                    }, 3000);
+        window.submitAnswer = (idx) => {
+            // 計算計分：1000分起跳，按比例遞減
+            const snap = ref(db, 'rooms/' + myRoomId);
+            get(snap).then(s => {
+                const data = s.val();
+                const limit = data.settings.timeLimit * 1000;
+                const elapsed = Date.now() - gameStartTime;
+                const points = Math.max(100, Math.floor(1000 * ((limit - elapsed) / limit)));
+                
+                update(ref(db, `rooms/${myRoomId}/players/${myId}`), { 
+                    answer: idx, 
+                    lastPoints: points 
+                });
+                
+                document.getElementById('status-msg').innerText = `已鎖定！剩餘積分：${points}`;
+                if(isHost) checkAnswers();
+            });
+        };
+
+        function startTimer(seconds) {
+            clearInterval(timerInterval);
+            gameStartTime = Date.now();
+            const bar = document.getElementById('timer-bar');
+            
+            timerInterval = setInterval(() => {
+                const elapsed = Date.now() - gameStartTime;
+                const remainPercent = Math.max(0, 100 - (elapsed / (seconds * 1000) * 100));
+                bar.style.width = remainPercent + "%";
+                
+                if(elapsed >= seconds * 1000) {
+                    clearInterval(timerInterval);
+                    if(isHost) forceNext();
                 }
-            }, 500);
+            }, 100);
+        }
+
+        async function checkAnswers() {
+            const s = await get(ref(db, 'rooms/' + myRoomId));
+            const r = s.val();
+            if(Object.values(r.players).every(p => p.answer !== -1) && !r.showResult) {
+                processRoundEnd(r);
+            }
+        }
+
+        async function forceNext() {
+            const s = await get(ref(db, 'rooms/' + myRoomId));
+            if(!s.val().showResult) processRoundEnd(s.val());
+        }
+
+        function processRoundEnd(r) {
+            const q = r.questions[r.currentQIndex];
+            const updates = { showResult: true };
+            
+            Object.entries(r.players).forEach(([pid, p]) => {
+                if(p.answer === q.ans) {
+                    updates[`players/${pid}/score`] = p.score + (p.lastPoints || 0);
+                }
+                updates[`players/${pid}/answer`] = -1;
+                updates[`players/${pid}/lastPoints`] = 0;
+            });
+            update(ref(db, 'rooms/' + myRoomId), updates);
+
+            setTimeout(() => {
+                const next = r.currentQIndex + 1;
+                if(next >= r.questions.length) update(ref(db, 'rooms/' + myRoomId), { state: 'finished' });
+                else update(ref(db, 'rooms/' + myRoomId), { currentQIndex: next, showResult: false });
+            }, 3000);
         }
 
         function renderGame(r) {
             showScreen('screen-game');
             const q = r.questions[r.currentQIndex];
             const me = r.players[myId];
-            document.getElementById('q-counter').innerText = `Q${r.currentQIndex+1}`;
+            
+            document.getElementById('q-counter').innerText = `Q${r.currentQIndex+1}/${r.questions.length}`;
             document.getElementById('question-text').innerText = q.q;
             document.getElementById('my-score').innerText = `${me.score} PTS`;
             
+            // 處理計時器
+            if(!r.showResult && me.answer === -1) {
+                if(!timerInterval || document.getElementById('status-msg').dataset.lastQ != r.currentQIndex) {
+                    startTimer(r.settings.timeLimit);
+                    document.getElementById('status-msg').dataset.lastQ = r.currentQIndex;
+                }
+            } else {
+                clearInterval(timerInterval);
+            }
+
             for(let i=0; i<4; i++) {
                 const b = document.getElementById(`opt-${i}`);
                 b.innerText = q.options[i];
@@ -235,16 +318,15 @@
                     else if(me.answer === i) b.classList.add('btn-wrong');
                 }
             }
-            document.getElementById('status-msg').innerText = r.showResult ? "準備下一題..." : (me.answer !== -1 ? "等待對手..." : "");
+            document.getElementById('status-msg').innerText = r.showResult ? "本題結束" : (me.answer !== -1 ? "等待對手..." : "");
         }
 
         function renderResult(ps) {
             showScreen('screen-result');
             const sorted = Object.values(ps).sort((a,b)=>b.score-a.score);
             document.getElementById('result-list').innerHTML = sorted.map((p,i)=>
-                `<div style="display:flex; justify-content:space-between; padding:15px; background:${i===0?'var(--light-blue)':'white'}; border-radius:12px; margin-bottom:10px; font-weight:bold;">
-                    <span>${i===0?'🏆':i+1+'.'} ${p.name}</span>
-                    <span style="color:var(--primary-blue)">${p.score}</span>
+                `<div style="display:flex; justify-content:space-between; padding:12px; background:#F5F5F5; margin:5px; border-radius:10px;">
+                    <span>${i+1}. ${p.name}</span><b>${p.score}</b>
                 </div>`).join('');
         }
 
