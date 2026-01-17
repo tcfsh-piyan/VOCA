@@ -2,31 +2,37 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>字彙王 - 題庫管理中心</title>
+    <title>字彙王 - 極速後台管理</title>
     <style>
         body { font-family: sans-serif; background: #f0f2f5; padding: 40px; color: #1A237E; }
-        .card { background: white; max-width: 800px; margin: 0 auto; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
-        h1 { border-bottom: 2px solid #E8EAF6; padding-bottom: 10px; }
-        textarea { width: 100%; height: 200px; padding: 15px; border-radius: 10px; border: 1px solid #ddd; font-family: monospace; box-sizing: border-box; }
-        button { background: #1A237E; color: white; border: none; padding: 12px 25px; border-radius: 10px; cursor: pointer; font-weight: bold; margin-top: 10px; }
-        .import-box { background: #E8EAF6; padding: 20px; border-radius: 15px; margin-bottom: 30px; }
-        .q-item { background: #fafafa; border: 1px solid #eee; padding: 15px; border-radius: 10px; margin-top: 10px; }
+        .card { background: white; max-width: 700px; margin: 0 auto; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        textarea { width: 100%; height: 300px; padding: 15px; border-radius: 10px; border: 1px solid #ddd; font-family: monospace; box-sizing: border-box; }
+        select { width: 100%; padding: 12px; margin: 10px 0; border-radius: 10px; border: 1px solid #ddd; }
+        button { background: #1A237E; color: white; border: none; padding: 15px 30px; border-radius: 10px; cursor: pointer; font-weight: bold; width: 100%; font-size: 1.1rem; }
+        .info { background: #E8EAF6; padding: 20px; border-radius: 15px; margin-bottom: 20px; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h1>字彙王 題庫控制台</h1>
-
-    <div class="import-box">
-        <h3>🚀 大量匯入題目</h3>
-        <p style="font-size:0.8rem; color:#666;">請貼上 JSON 陣列格式。範例：[{"q":"apple","options":["蘋果","香蕉","橘子","水梨"],"ans":0}]</p>
-        <textarea id="bulk-json" placeholder='貼上你的題目資料...'></textarea>
-        <button onclick="bulkImport()">確認大量匯入 (覆蓋現有題庫)</button>
+    <h1>🚀 字彙王 極速匯入後台</h1>
+    
+    <div class="info">
+        <label><b>1. 選擇要存入的難度等級：</b></label>
+        <select id="import-level">
+            <option value="lv4">Level 4 (進階單字)</option>
+            <option value="lv5">Level 5 (高階單字)</option>
+            <option value="lv6">Level 6 (挑戰單字)</option>
+        </select>
+        
+        <label><b>2. 貼上 JSON 題目資料：</b></label>
+        <p style="font-size:0.8rem; color:#666;">* 此動作將覆蓋該難度原本的所有題目</p>
+        <textarea id="bulk-json" placeholder='[...] 格式範例'></textarea>
+        
+        <button onclick="bulkImport()">⚡ 執行大量匯入</button>
     </div>
 
-    <div id="status-area"></div>
-    <div id="q-list"></div>
+    <div id="status"></div>
 </div>
 
 <script type="module">
@@ -47,29 +53,26 @@
     const db = getDatabase(app);
 
     window.bulkImport = async () => {
+        const lv = document.getElementById('import-level').value;
         const raw = document.getElementById('bulk-json').value;
+        const statusDiv = document.getElementById('status');
+        
+        statusDiv.innerHTML = "<p>正在上傳至雲端...</p>";
+
         try {
             const data = JSON.parse(raw);
-            if(!Array.isArray(data)) throw new Error("必須是陣列格式 []");
+            if(!Array.isArray(data)) throw new Error("資料必須是 [ ] 陣列格式");
             
-            await set(ref(db, 'global_questions'), data);
-            alert("✅ 題庫更新成功！共匯入 " + data.length + " 題。");
-            location.reload();
+            // 存入指定的難度節點
+            await set(ref(db, 'global_questions/' + lv), data);
+            
+            statusDiv.innerHTML = `<div style="color:green; font-weight:bold; border:2px solid green; padding:15px; border-radius:10px;">
+                ✅ 成功！已將 ${data.length} 題存入 ${lv} 題庫。
+            </div>`;
+            document.getElementById('bulk-json').value = "";
         } catch(e) {
-            alert("❌ 匯入失敗，請檢查 JSON 格式是否正確。\n錯誤：" + e.message);
+            statusDiv.innerHTML = `<p style="color:red;">❌ 失敗：${e.message}</p>`;
         }
-    }
-
-    // 載入列表顯示
-    const snap = await get(ref(db, 'global_questions'));
-    if(snap.exists()){
-        const qs = snap.val();
-        document.getElementById('q-list').innerHTML = `<h3>目前題庫 (${qs.length} 題)</h3>` + qs.map((q,i)=>`
-            <div class="q-item">
-                <b>${i+1}. ${q.q}</b><br>
-                <small>正解：${q.options[q.ans]}</small>
-            </div>
-        `).join('');
     }
 </script>
 
