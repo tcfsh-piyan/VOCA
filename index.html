@@ -1,252 +1,174 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>字彙王 - Word King Pro</title>
-    <style>
-        :root { --primary-blue: #1A237E; --light-blue: #E8EAF6; --accent-orange: #FF7043; }
-        body { font-family: 'Inter', sans-serif; background-color: var(--light-blue); margin: 0; padding: 20px; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
-        .screen { background: rgba(255, 255, 255, 0.95); padding: 30px; border-radius: 30px; box-shadow: 0 20px 50px rgba(26, 35, 126, 0.1); width: 100%; max-width: 450px; display: none; text-align: center; }
-        .active { display: block; }
-        h1 { color: var(--primary-blue); font-size: 2.2rem; margin-bottom: 10px; }
-        input, select { width: 100%; padding: 15px; margin: 10px 0; border: 2px solid #EEE; border-radius: 15px; font-size: 1rem; box-sizing: border-box; }
-        button { background: var(--primary-blue); color: white; border: none; padding: 16px; width: 100%; font-size: 1.1rem; border-radius: 15px; cursor: pointer; margin: 10px 0; font-weight: 700; transition: 0.3s; }
-        button:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(26, 35, 126, 0.2); }
-        .timer-container { width: 100%; height: 8px; background: #EEE; border-radius: 10px; margin: 15px 0; overflow: hidden; }
-        #timer-bar { width: 100%; height: 100%; background: var(--primary-blue); transition: width 0.1s linear; }
-        .option-grid { display: grid; gap: 10px; margin-top: 20px; }
-        .btn-option { background: white; color: var(--primary-blue); border: 2px solid var(--light-blue); height: 65px; font-size: 1.1rem; border-radius: 15px; cursor: pointer; }
-        .btn-correct { background: #4CAF50 !important; color: white !important; }
-        .btn-wrong { background: #EF5350 !important; color: white !important; }
-        .score-badge { background: var(--primary-blue); color: white; padding: 5px 15px; border-radius: 20px; font-weight: bold; }
-    </style>
-</head>
-<body>
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getDatabase, ref, set, update, onValue, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-    <div id="screen-login" class="screen active">
-        <h1>字彙王</h1>
-        <input type="text" id="username" placeholder="你的暱稱" value="玩家1">
-        <button onclick="createRoom()">👑 創建戰局</button>
-        <div style="margin:15px; color:#999;">— 或 —</div>
-        <input type="tel" id="room-code-input" placeholder="輸入房號密碼" maxlength="4">
-        <button onclick="joinRoom()" style="background:#5C6BC0;">⚔️ 加入挑戰</button>
-    </div>
+    const firebaseConfig = {
+        apiKey: "AIzaSyCqOMWOyUKq-i9GlwB2KqpCpJCNAOvHlIY",
+        authDomain: "voca-69.firebaseapp.com",
+        databaseURL: "https://voca-69-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "voca-69",
+        storageBucket: "voca-69.firebasestorage.app",
+        messagingSenderId: "960668024510",
+        appId: "1:960668024510:web:ef4148c6b0cad40dcf68ef"
+    };
 
-    <div id="screen-lobby" class="screen">
-        <h2>房號：<span id="display-room-code" style="color:var(--primary-blue)">----</span></h2>
-        <div id="host-controls" style="display:none; background:#F5F5F5; padding:15px; border-radius:20px; margin:15px 0; text-align:left;">
-            <label style="font-weight:bold; color:var(--primary-blue); font-size:0.9rem;">📚 選擇題目難度</label>
-            <select id="set-level">
-                <option value="lv4">Level 4 (進階單字)</option>
-                <option value="lv5" selected>Level 5 (高階單字)</option>
-                <option value="lv6">Level 6 (挑戰單字)</option>
-            </select>
-            <label style="font-weight:bold; color:var(--primary-blue); font-size:0.9rem;">⏱ 每題時間</label>
-            <select id="set-time">
-                <option value="5">5 秒 (極速)</option>
-                <option value="10" selected>10 秒 (標準)</option>
-                <option value="15">15 秒 (放鬆)</option>
-            </select>
-            <label style="font-weight:bold; color:var(--primary-blue); font-size:0.9rem;">📝 總題數</label>
-            <select id="set-count">
-                <option value="5">5 題</option>
-                <option value="10" selected>10 題</option>
-                <option value="20">20 題</option>
-            </select>
-        </div>
-        <ul id="lobby-player-list" style="list-style:none; padding:0; margin:20px 0;"></ul>
-        <button id="btn-start" onclick="startGame()" style="display:none; background: var(--accent-orange);">🔥 開始戰鬥！</button>
-        <p id="wait-msg">等待房主發起挑戰...</p>
-    </div>
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
 
-    <div id="screen-game" class="screen">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-            <span id="q-counter" class="score-badge">Q1</span>
-            <span id="my-score" class="score-badge">0 PTS</span>
-        </div>
-        <div class="timer-container"><div id="timer-bar"></div></div>
-        <h2 id="question-text" style="min-height: 60px;">載入中...</h2>
-        <div class="option-grid">
-            <button class="btn-option" onclick="submitAnswer(0)" id="opt-0"></button>
-            <button class="btn-option" onclick="submitAnswer(1)" id="opt-1"></button>
-            <button class="btn-option" onclick="submitAnswer(2)" id="opt-2"></button>
-            <button class="btn-option" onclick="submitAnswer(3)" id="opt-3"></button>
-        </div>
-        <div id="status-msg" style="margin-top:20px; font-weight:bold; color:var(--accent-orange);"></div>
-    </div>
+    // --- 優化：本地狀態管理 ---
+    let myId = "u_" + Math.random().toString(36).substr(2, 5);
+    let myRoomId, isHost = false;
+    let timerInterval, gameStartTime;
+    let sessionHistory = [];
+    let currentLocalData = null; // 存儲當前房間所有數據
+    let lastRenderedQ = -1; // 防止重複繪製題目
 
-    <div id="screen-result" class="screen">
-        <h1>最終排名</h1>
-        <div id="result-list" style="margin:20px 0;"></div>
-        <button onclick="location.reload()">🎮 再來一局</button>
-    </div>
+    // --- 核心邏輯 ---
+    window.createRoom = async () => {
+        const name = document.getElementById('username').value || '玩家';
+        myRoomId = Math.floor(1000 + Math.random() * 9000).toString();
+        isHost = true;
+        await set(ref(db, 'rooms/' + myRoomId), { 
+            state: 'lobby', 
+            currentQIndex: -1, 
+            settings: { timeLimit: 10, maxQs: 10, level: 'lv5' }, 
+            players: { [myId]: { name, score: 0, answer: -1, tempAns: -1 } } 
+        });
+        initLobby();
+    };
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, set, update, onValue, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyCqOMWOyUKq-i9GlwB2KqpCpJCNAOvHlIY",
-            authDomain: "voca-69.firebaseapp.com",
-            databaseURL: "https://voca-69-default-rtdb.asia-southeast1.firebasedatabase.app",
-            projectId: "voca-69",
-            storageBucket: "voca-69.firebasestorage.app",
-            messagingSenderId: "960668024510",
-            appId: "1:960668024510:web:ef4148c6b0cad40dcf68ef"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
-
-        let myId = "u_" + Math.random().toString(36).substr(2, 5);
-        let myRoomId, isHost = false, timerInterval, gameStartTime;
-
-        window.createRoom = async () => {
-            const name = document.getElementById('username').value || '玩家';
-            myRoomId = Math.floor(1000 + Math.random() * 9000).toString();
-            isHost = true;
-            await set(ref(db, 'rooms/' + myRoomId), {
-                state: 'lobby',
-                currentQIndex: -1,
-                settings: { timeLimit: 10, maxQs: 10, level: 'lv5' },
-                players: { [myId]: { name, score: 0, answer: -1 } }
-            });
+    window.joinRoom = async () => {
+        const name = document.getElementById('username').value || '玩家';
+        myRoomId = document.getElementById('room-code-input').value;
+        const snap = await get(ref(db, 'rooms/' + myRoomId));
+        if(snap.exists() && snap.val().state === 'lobby') {
+            await update(ref(db, `rooms/${myRoomId}/players/${myId}`), { name, score: 0, answer: -1, tempAns: -1 });
             initLobby();
-        };
+        } else alert("戰局不存在或已開始");
+    };
 
-        window.joinRoom = async () => {
-            const name = document.getElementById('username').value || '玩家';
-            myRoomId = document.getElementById('room-code-input').value;
-            const snap = await get(ref(db, 'rooms/' + myRoomId));
-            if(snap.exists() && snap.val().state === 'lobby') {
-                await update(ref(db, `rooms/${myRoomId}/players/${myId}`), { name, score: 0, answer: -1 });
-                initLobby();
-            } else alert("戰局不存在或已開始");
-        };
+    function initLobby() {
+        document.getElementById('display-room-code').innerText = myRoomId;
+        showScreen('screen-lobby');
+        if(isHost) document.getElementById('host-controls').style.display = 'block', document.getElementById('btn-start').style.display = 'block';
 
-        function initLobby() {
-            document.getElementById('display-room-code').innerText = myRoomId;
-            showScreen('screen-lobby');
-            if(isHost) {
-                document.getElementById('host-controls').style.display = 'block';
-                document.getElementById('btn-start').style.display = 'block';
-                document.getElementById('wait-msg').style.display = 'none';
+        // 優化：單一監聽器處理所有邏輯
+        onValue(ref(db, 'rooms/' + myRoomId), (snap) => {
+            const data = snap.val();
+            if(!data) return;
+            currentLocalData = data; // 更新快取
+
+            // 1. 只有在大廳時才頻繁渲染玩家清單
+            if(data.state === 'lobby') {
+                renderLobbyPlayers(data.players);
             }
-            onValue(ref(db, 'rooms/' + myRoomId), (snap) => {
-                const data = snap.val();
-                if(!data) return;
-                const players = Object.values(data.players);
-                document.getElementById('lobby-player-list').innerHTML = players.map(p => 
-                    `<li style="padding:10px; background:white; margin:5px; border-radius:12px; font-weight:bold;">👤 ${p.name}</li>`).join('');
-                if(data.state === 'playing') renderGame(data);
-                if(data.state === 'finished') renderResult(data.players);
-            });
-        }
-
-        window.startGame = async () => {
-            const level = document.getElementById('set-level').value;
-            const timeLimit = parseInt(document.getElementById('set-time').value);
-            const maxQs = parseInt(document.getElementById('set-count').value);
             
-            // 房主負責抓取資料並分發，這就是「快」的關鍵：只抓該難度的題庫
-            const qSnap = await get(ref(db, 'global_questions/' + level));
-            if(!qSnap.exists()) return alert("此難度題庫目前為空，請至後台匯入資料");
+            // 2. 遊戲進行中的邏輯
+            if(data.state === 'playing') {
+                smartRenderGame(data);
+            }
             
-            const allQs = qSnap.val();
-            const shuffled = allQs.sort(() => 0.5 - Math.random()).slice(0, maxQs);
+            if(data.state === 'finished') {
+                renderResult(data.players);
+            }
+        });
+    }
 
-            update(ref(db, 'rooms/' + myRoomId), { 
-                state: 'playing', currentQIndex: 0, settings: { timeLimit, maxQs, level }, questions: shuffled 
-            });
-        };
+    // 優化：智能渲染題目，只有題目變了才更新介面
+    function smartRenderGame(data) {
+        showScreen('screen-game');
+        const qIndex = data.currentQIndex;
+        const q = data.questions[qIndex];
+        const me = data.players[myId];
 
-        window.submitAnswer = (idx) => {
-            get(ref(db, 'rooms/' + myRoomId)).then(s => {
-                const data = s.val();
-                const limit = data.settings.timeLimit * 1000;
-                const elapsed = Date.now() - gameStartTime;
-                const points = Math.max(100, Math.floor(1000 * ((limit - elapsed) / limit)));
-                update(ref(db, `rooms/${myRoomId}/players/${myId}`), { answer: idx, lastPoints: points });
-                document.getElementById('status-msg').innerText = "已鎖定！剩餘積分：" + points;
-                if(isHost) checkRoundEnd();
-            });
-        };
+        // 更新分數 (不影響題目 UI，可以頻繁更新)
+        document.getElementById('my-score').innerText = `${me.score} PTS`;
+        document.getElementById('q-counter').innerText = `Q${qIndex+1}/${data.questions.length}`;
 
-        function startTimer(sec) {
-            clearInterval(timerInterval);
-            gameStartTime = Date.now();
-            timerInterval = setInterval(() => {
-                const elap = Date.now() - gameStartTime;
-                const rem = Math.max(0, 100 - (elap / (sec * 1000) * 100));
-                document.getElementById('timer-bar').style.width = rem + "%";
-                if(elap >= sec * 1000) { clearInterval(timerInterval); if(isHost) forceNext(); }
-            }, 100);
-        }
-
-        async function checkRoundEnd() {
-            const s = await get(ref(db, 'rooms/' + myRoomId));
-            const r = s.val();
-            if(Object.values(r.players).every(p => p.answer !== -1) && !r.showResult) processResult(r);
-        }
-
-        async function forceNext() {
-            const s = await get(ref(db, 'rooms/' + myRoomId));
-            if(!s.val().showResult) processResult(s.val());
-        }
-
-        function processResult(r) {
-            const q = r.questions[r.currentQIndex];
-            const up = { showResult: true };
-            Object.entries(r.players).forEach(([pid, p]) => {
-                if(p.answer === q.ans) up[`players/${pid}/score`] = p.score + (p.lastPoints || 0);
-                up[`players/${pid}/answer`] = -1;
-                up[`players/${pid}/lastPoints`] = 0;
-            });
-            update(ref(db, 'rooms/' + myRoomId), up);
-            setTimeout(() => {
-                const next = r.currentQIndex + 1;
-                if(next >= r.questions.length) update(ref(db, 'rooms/' + myRoomId), { state: 'finished' });
-                else update(ref(db, 'rooms/' + myRoomId), { currentQIndex: next, showResult: false });
-            }, 3000);
-        }
-
-        function renderGame(r) {
-            showScreen('screen-game');
-            const q = r.questions[r.currentQIndex];
-            const me = r.players[myId];
-            document.getElementById('q-counter').innerText = `Q${r.currentQIndex+1}/${r.questions.length}`;
+        // 只有題目序號改變，或是從「答題中」轉為「顯示結果」時才重繪按鈕
+        if(lastRenderedQ !== qIndex || document.body.dataset.showingResult != String(data.showResult)) {
             document.getElementById('question-text').innerText = q.q;
-            document.getElementById('my-score').innerText = `${me.score} PTS`;
-            if(!r.showResult && me.answer === -1) {
-                if(!timerInterval || document.getElementById('status-msg').dataset.lastQ != r.currentQIndex) {
-                    startTimer(r.settings.timeLimit);
-                    document.getElementById('status-msg').dataset.lastQ = r.currentQIndex;
-                }
-            } else { clearInterval(timerInterval); }
+            document.body.dataset.showingResult = data.showResult;
+            lastRenderedQ = qIndex;
+
             for(let i=0; i<4; i++) {
                 const b = document.getElementById(`opt-${i}`);
                 b.innerText = q.options[i];
                 b.className = 'btn-option';
-                b.disabled = r.showResult || me.answer !== -1;
-                if(r.showResult) {
+                b.disabled = data.showResult || me.tempAns !== -1;
+                
+                if(data.showResult) {
                     if(i === q.ans) b.classList.add('btn-correct');
-                    else if(me.answer === i) b.classList.add('btn-wrong');
+                    else if(me.tempAns === i) b.classList.add('btn-wrong');
                 }
             }
-            document.getElementById('status-msg').innerText = r.showResult ? "本題結束" : (me.answer !== -1 ? "等待對手..." : "");
+
+            // 如果是新題目，重啟計時器
+            if(!data.showResult && me.tempAns === -1) {
+                startTimer(data.settings.timeLimit);
+            } else {
+                clearInterval(timerInterval);
+            }
         }
 
-        function renderResult(ps) {
-            showScreen('screen-result');
-            const sorted = Object.values(ps).sort((a,b)=>b.score-a.score);
-            document.getElementById('result-list').innerHTML = sorted.map((p,i)=>
-                `<div style="display:flex; justify-content:space-between; padding:15px; background:white; margin:10px; border-radius:15px; font-weight:bold;">
-                    <span>${i+1}. ${p.name}</span><span style="color:var(--primary-blue)">${p.score}</span>
-                </div>`).join('');
+        // 處理戰報紀錄
+        if(data.showResult && !data.logged) {
+            logHistory(q, me);
+            data.logged = true; // 僅本地標記
         }
 
-        function showScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
-    </script>
-</body>
-</html>
+        document.getElementById('status-msg').innerText = data.showResult ? "本題結束" : (me.tempAns !== -1 ? "等待對手..." : "");
+    }
+
+    function logHistory(q, me) {
+        if(sessionHistory.some(h => h.q === q.q)) return;
+        sessionHistory.push({
+            q: q.q,
+            correct: q.options[q.ans],
+            mine: me.tempAns !== -1 ? q.options[me.tempAns] : "未作答",
+            isCorrect: me.tempAns === q.ans
+        });
+    }
+
+    // --- 優化：更平滑的計時器 ---
+    function startTimer(sec) {
+        clearInterval(timerInterval);
+        gameStartTime = Date.now();
+        const bar = document.getElementById('timer-bar');
+        timerInterval = setInterval(() => {
+            const elap = Date.now() - gameStartTime;
+            const rem = Math.max(0, 100 - (elap / (sec * 1000) * 100));
+            bar.style.width = rem + "%";
+            if(elap >= sec * 1000) {
+                clearInterval(timerInterval);
+                if(isHost) forceNext();
+            }
+        }, 50); // 50ms 更新一次進度條，更順滑
+    }
+
+    window.submitAnswer = (idx) => {
+        // 優化：直接從本地快取計算，不再 get()
+        const limit = currentLocalData.settings.timeLimit * 1000;
+        const elapsed = Date.now() - gameStartTime;
+        const points = Math.max(100, Math.floor(1000 * ((limit - elapsed) / limit)));
+        
+        update(ref(db, `rooms/${myRoomId}/players/${myId}`), { 
+            answer: idx, 
+            tempAns: idx, 
+            lastPoints: points 
+        });
+        
+        document.getElementById('status-msg').innerText = "已鎖定！積分：" + points;
+        if(isHost) setTimeout(checkRoundEnd, 200); // 延遲一下確保數據寫入
+    };
+
+    // ... 其餘 startGame, renderResult 等函數保持不變，但建議加入 list 渲染優化 ...
+    
+    function renderLobbyPlayers(playersObj) {
+        const listHtml = Object.values(playersObj).map(p => 
+            `<li style="padding:12px; background:white; margin:8px; border-radius:15px; box-shadow:0 4px 10px rgba(0,0,0,0.05); font-weight:bold; color:var(--primary-blue);">👤 ${p.name}</li>`
+        ).join('');
+        const listEl = document.getElementById('lobby-player-list');
+        if(listEl.innerHTML !== listHtml) listEl.innerHTML = listHtml;
+    }
+</script>
