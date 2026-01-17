@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>Firebase 連線檢測器</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #222; color: #fff; line-height: 1.6; }
+        .status { padding: 15px; margin: 10px 0; border-radius: 5px; background: #333; }
+        .success { color: #4caf50; border-left: 5px solid #4caf50; }
+        .error { color: #ff5252; border-left: 5px solid #ff5252; font-weight: bold; }
+        .warn { color: #ffeb3b; border-left: 5px solid #ffeb3b; }
+        button { padding: 10px 20px; font-size: 1.2rem; cursor: pointer; background: #2196F3; color: white; border: none; }
+    </style>
+</head>
+<body>
+    <h1>🚑 Firebase 連線診斷室</h1>
+    <p>請填入你的 Config，然後按下「開始診斷」。結果會顯示在下方。</p>
+    
+    <textarea id="config-input" rows="10" style="width:100%;" placeholder='請把 const firebaseConfig = { apiKey: "AIzaSyCqOMW0yUKq-i9GlwB2KqpCpJCNAoVHlIY",
+  authDomain: "voca-69.firebaseapp.com",
+  databaseURL: "https://voca-69-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "voca-69",
+  storageBucket: "voca-69.firebasestorage.app",
+  messagingSenderId: "960668024510",
+  appId: "1:960668024510:web:ef4148c6b0cad40dcf68ef",
+  measurementId: "G-YRFJRVQJWV" } 整段貼在這裡'></textarea>
+    <br><br>
+    <button onclick="runTest()">開始診斷</button>
+
+    <div id="logs"></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        // 把 Firebase 函數掛載到全域，讓下面的非 module 腳本可以用
+        window.fb_initializeApp = initializeApp;
+        window.fb_getDatabase = getDatabase;
+        window.fb_ref = ref;
+        window.fb_set = set;
+    </script>
+
+    <script>
+        function log(msg, type = 'status') {
+            const div = document.getElementById('logs');
+            div.innerHTML += `<div class="status ${type}">${msg}</div>`;
+        }
+
+        async function runTest() {
+            document.getElementById('logs').innerHTML = ""; // 清空
+            log("1. 檢查執行環境...");
+
+            // 檢查 1: 是否直接開啟檔案
+            if (window.location.protocol === 'file:') {
+                log("⚠️ 警告：你正在使用 file:// 模式開啟 (直接雙擊檔案)。<br>這會導致 Firebase 被瀏覽器安全機制擋下。<br>請務必將檔案上傳到 GitHub Pages，或使用 Localhost。", "warn");
+            } else {
+                log("✅ 執行環境正常 (非 file://)");
+            }
+
+            log("2. 解析 Config...");
+            const input = document.getElementById('config-input').value;
+            let configObj = null;
+
+            try {
+                // 嘗試從文字中提取 JSON 物件
+                let cleanJson = input.replace(/const\s+firebaseConfig\s+=\s+/, '').replace(/;/g, '');
+                // 簡單處理物件格式 key: "value" -> "key": "value" 以便解析
+                // 這裡用更寬容的方式：直接用 eval (僅供測試用，正式環境不建議)
+                const extractConfig = new Function("return " + cleanJson);
+                configObj = extractConfig();
+                
+                if(!configObj.apiKey || !configObj.databaseURL) {
+                    throw new Error("Config 缺少 apiKey 或 databaseURL，請檢查複製是否完整。");
+                }
+                log("✅ Config 格式正確");
+            } catch (e) {
+                log("❌ Config 解析失敗：<br>" + e.message + "<br>請確認你複製的是完整的 const firebaseConfig = { ... };", "error");
+                return;
+            }
+
+            log("3. 嘗試連線 Firebase...");
+            try {
+                if (!window.fb_initializeApp) {
+                    throw new Error("Firebase SDK 尚未載入，請檢查網路連線或是否被廣告阻擋器攔截。");
+                }
+
+                const app = window.fb_initializeApp(configObj);
+                const db = window.fb_getDatabase(app);
+                
+                log("✅ Firebase App 初始化成功");
+                log("4. 嘗試寫入資料庫 (測試權限)...");
+
+                // 嘗試寫入一個測試節點
+                await window.fb_set(window.fb_ref(db, 'test_connection'), {
+                    time: new Date().toString(),
+                    message: "It works!"
+                });
+
+                log("🎉🎉🎉 恭喜！連線成功！<br>資料庫讀寫正常。你的 Config 是對的。<br>如果不行的話，可能是之前的程式碼貼錯位置。", "success");
+
+            } catch (e) {
+                let errorMsg = e.message;
+                if (errorMsg.includes("PERMISSION_DENIED")) {
+                    errorMsg += "<br>👉 <b>原因：</b>資料庫規則 (Rules) 被設為 false。<br>👉 <b>解法：</b>去 Firebase Console > Realtime Database > Rules 改成 true。";
+                } else if (errorMsg.includes("FIREBASE_APP_NO_DEFAULT")) {
+                    errorMsg += "<br>👉 <b>原因：</b>初始化失敗，可能是 Config 內容有誤。";
+                } else {
+                    errorMsg += "<br>👉 <b>原因：</b>可能是 databaseURL 網址錯誤或網路問題。";
+                }
+                log("❌ 連線失敗：<br>" + errorMsg, "error");
+            }
+        }
+    </script>
+</body>
+</html>
