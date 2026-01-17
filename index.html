@@ -3,27 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>字彙王 - Word King Pro</title>
+    <title>字彙王 - Word King Live Ranking</title>
     <style>
-        :root { --primary-blue: #1A237E; --light-blue: #E8EAF6; --accent-orange: #FF7043; }
-        body { font-family: 'Inter', 'Noto Sans TC', sans-serif; background-color: var(--light-blue); margin: 0; padding: 20px; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
-        .screen { background: rgba(255, 255, 255, 0.95); padding: 30px; border-radius: 30px; box-shadow: 0 20px 50px rgba(26, 35, 126, 0.1); width: 100%; max-width: 450px; display: none; text-align: center; animation: fadeIn 0.4s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        :root { --primary-blue: #1A237E; --light-blue: #E8EAF6; --accent-orange: #FF7043; --success: #4CAF50; }
+        body { font-family: 'Inter', 'Noto Sans TC', sans-serif; background-color: var(--light-blue); margin: 0; padding: 15px; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+        
+        .screen { background: rgba(255, 255, 255, 0.98); padding: 25px; border-radius: 30px; box-shadow: 0 20px 50px rgba(26, 35, 126, 0.12); width: 100%; max-width: 450px; display: none; text-align: center; animation: slideUp 0.4s ease-out; position: relative; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         .active { display: block; }
-        h1 { color: var(--primary-blue); font-size: 2.2rem; margin-bottom: 10px; }
+
+        /* 即時排行榜樣式 */
+        .live-leaderboard { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; background: #f8f9ff; padding: 12px; border-radius: 20px; border: 1px solid #e0e4ff; }
+        .rank-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 15px; background: white; border-radius: 12px; transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .rank-item.is-me { border: 2px solid var(--primary-blue); }
+        .rank-name { font-weight: 700; font-size: 0.9rem; color: #333; }
+        .rank-score { font-weight: 900; color: var(--primary-blue); font-size: 0.9rem; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #ddd; margin-right: 8px; }
+        .status-dot.done { background: var(--success); box-shadow: 0 0 8px var(--success); animation: pulse 1s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+        /* 遊戲元件 */
+        h1 { color: var(--primary-blue); font-size: 2rem; margin-bottom: 10px; }
         input, select { width: 100%; padding: 15px; margin: 10px 0; border: 2px solid #EEE; border-radius: 15px; font-size: 1rem; box-sizing: border-box; }
         button { background: var(--primary-blue); color: white; border: none; padding: 16px; width: 100%; font-size: 1.1rem; border-radius: 15px; cursor: pointer; margin: 10px 0; font-weight: 700; transition: 0.3s; }
-        button:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(26, 35, 126, 0.2); }
-        .timer-container { width: 100%; height: 8px; background: #EEE; border-radius: 10px; margin: 15px 0; overflow: hidden; }
+        button:hover { transform: translateY(-2px); }
+
+        .timer-container { width: 100%; height: 6px; background: #EEE; border-radius: 10px; margin: 15px 0; overflow: hidden; }
         #timer-bar { width: 100%; height: 100%; background: var(--primary-blue); transition: width 0.1s linear; }
-        .option-grid { display: grid; gap: 10px; margin-top: 20px; }
-        .btn-option { background: white; color: var(--primary-blue); border: 2px solid var(--light-blue); height: 65px; font-size: 1.1rem; border-radius: 15px; cursor: pointer; transition: 0.2s; }
-        .btn-correct { background: #4CAF50 !important; color: white !important; border-color: #4CAF50 !important; }
+        
+        .option-grid { display: grid; gap: 10px; margin-top: 15px; }
+        .btn-option { background: white; color: var(--primary-blue); border: 2px solid var(--light-blue); height: 60px; font-size: 1.1rem; border-radius: 15px; cursor: pointer; transition: 0.2s; font-weight: 500; }
+        .btn-correct { background: var(--success) !important; color: white !important; border-color: var(--success) !important; transform: scale(1.05); }
         .btn-wrong { background: #EF5350 !important; color: white !important; border-color: #EF5350 !important; }
-        .score-badge { background: var(--primary-blue); color: white; padding: 5px 15px; border-radius: 20px; font-weight: bold; }
-        .review-list { max-height: 250px; overflow-y: auto; background: #F9F9F9; border-radius: 15px; margin-top: 10px; }
-        .review-item { text-align: left; padding: 12px; border-bottom: 1px solid #EEE; font-size: 0.95rem; }
-        .review-word { font-weight: bold; color: var(--primary-blue); display: block; margin-bottom: 4px; }
+
+        .review-list { max-height: 200px; overflow-y: auto; background: #F9F9F9; border-radius: 15px; margin-top: 10px; text-align: left; }
+        .review-item { padding: 10px; border-bottom: 1px solid #EEE; font-size: 0.9rem; }
     </style>
 </head>
 <body>
@@ -32,47 +46,43 @@
         <h1>字彙王</h1>
         <input type="text" id="username" placeholder="你的暱稱" value="玩家1">
         <button onclick="createRoom()">👑 創建戰局</button>
-        <div style="margin:15px; color:#999;">— 或 —</div>
-        <input type="tel" id="room-code-input" placeholder="輸入房號密碼" maxlength="4">
+        <div style="margin:10px; color:#999; font-size:0.8rem;">— 或 —</div>
+        <input type="tel" id="room-code-input" placeholder="房號密碼" maxlength="4">
         <button onclick="joinRoom()" style="background:#5C6BC0;">⚔️ 加入挑戰</button>
     </div>
 
     <div id="screen-lobby" class="screen">
         <h2>房號：<span id="display-room-code" style="color:var(--primary-blue)">----</span></h2>
         <div id="host-controls" style="display:none; background:#F5F5F5; padding:15px; border-radius:20px; margin:15px 0; text-align:left;">
-            <label style="font-weight:bold; color:var(--primary-blue); font-size:0.8rem;">📚 選擇難度</label>
             <select id="set-level"><option value="lv4">Level 4</option><option value="lv5" selected>Level 5</option><option value="lv6">Level 6</option></select>
-            <label style="font-weight:bold; color:var(--primary-blue); font-size:0.8rem;">⏱ 每題時間</label>
             <select id="set-time"><option value="5">5 秒</option><option value="10" selected>10 秒</option><option value="15">15 秒</option></select>
-            <label style="font-weight:bold; color:var(--primary-blue); font-size:0.8rem;">📝 總題數 (最大 20)</label>
             <select id="set-count"><option value="5">5 題</option><option value="10" selected>10 題</option><option value="20">20 題</option></select>
         </div>
-        <ul id="lobby-player-list" style="list-style:none; padding:0; margin:20px 0;"></ul>
+        <div id="lobby-player-list" class="live-leaderboard"></div>
         <button id="btn-start" onclick="startGame()" style="display:none; background: var(--accent-orange);">🔥 開始戰鬥！</button>
     </div>
 
     <div id="screen-game" class="screen">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-            <span id="q-counter" class="score-badge">Q1</span>
-            <span id="my-score" class="score-badge">0 PTS</span>
-        </div>
+        <div id="game-leaderboard" class="live-leaderboard" style="flex-direction: row; overflow-x: auto; padding: 10px; gap: 10px; background: transparent; border: none;"></div>
+        
         <div class="timer-container"><div id="timer-bar"></div></div>
-        <h2 id="question-text" style="min-height: 60px;">載入中...</h2>
+        <h2 id="question-text" style="margin: 10px 0; color: var(--primary-blue);">載入中...</h2>
+        
         <div class="option-grid">
             <button class="btn-option" onclick="submitAnswer(0)" id="opt-0"></button>
             <button class="btn-option" onclick="submitAnswer(1)" id="opt-1"></button>
             <button class="btn-option" onclick="submitAnswer(2)" id="opt-2"></button>
             <button class="btn-option" onclick="submitAnswer(3)" id="opt-3"></button>
         </div>
-        <div id="status-msg" style="margin-top:20px; font-weight:bold; color:var(--accent-orange);"></div>
+        <div id="status-msg" style="margin-top:15px; font-weight:bold; color:var(--accent-orange); font-size:0.9rem;"></div>
     </div>
 
     <div id="screen-result" class="screen">
         <h1>戰績結算</h1>
-        <div id="result-list"></div>
-        <h3 style="color: var(--primary-blue); margin-top: 20px;">📘 單字複習 (錯誤優先)</h3>
+        <div id="result-list" class="live-leaderboard"></div>
+        <h3 style="color: var(--primary-blue); margin-top: 15px; font-size: 1rem;">📘 單字複習</h3>
         <div id="review-list" class="review-list"></div>
-        <button onclick="location.reload()" style="margin-top:20px;">🎮 再來一局</button>
+        <button onclick="location.reload()">🎮 再玩一局</button>
     </div>
 
     <script type="module">
@@ -123,10 +133,26 @@
                 const data = snap.val();
                 if(!data) return;
                 currentLocalData = data;
-                if(data.state === 'lobby') renderLobbyPlayers(data.players);
+                if(data.state === 'lobby') updateLeaderboard('lobby-player-list', data.players);
                 if(data.state === 'playing') smartRenderGame(data);
-                if(data.state === 'finished') renderResult(data.players);
+                if(data.state === 'finished') updateLeaderboard('result-list', data.players, true);
             });
+        }
+
+        // 優化排行榜渲染：加入動態排序
+        function updateLeaderboard(elementId, playersObj, showRank = false) {
+            const container = document.getElementById(elementId);
+            const players = Object.values(playersObj).sort((a,b) => b.score - a.score);
+            
+            container.innerHTML = players.map((p, idx) => `
+                <div class="rank-item ${p.name === document.getElementById('username').value ? 'is-me' : ''}" style="order: ${idx};">
+                    <div style="display:flex; align-items:center;">
+                        ${!showRank ? `<div class="status-dot ${p.tempAns !== -1 ? 'done' : ''}"></div>` : `<span style="margin-right:8px; font-weight:900;">#${idx+1}</span>`}
+                        <span class="rank-name">${p.name}</span>
+                    </div>
+                    <span class="rank-score">${p.score} <small>PTS</small></span>
+                </div>
+            `).join('');
         }
 
         window.startGame = async () => {
@@ -134,17 +160,46 @@
             const timeLimit = parseInt(document.getElementById('set-time').value);
             const maxQs = parseInt(document.getElementById('set-count').value);
             const qSnap = await get(ref(db, 'global_questions/' + level));
-            if(!qSnap.exists()) return alert("題庫為空！請先至後台匯入資料。");
+            if(!qSnap.exists()) return alert("題庫為空！");
             const shuffled = qSnap.val().sort(() => 0.5 - Math.random()).slice(0, maxQs);
             update(ref(db, 'rooms/' + myRoomId), { state: 'playing', currentQIndex: 0, settings: { timeLimit, maxQs, level }, questions: shuffled });
         };
 
+        function smartRenderGame(data) {
+            showScreen('screen-game');
+            const qIndex = data.currentQIndex;
+            const q = data.questions[qIndex];
+            const me = data.players[myId];
+
+            // 更新遊戲內的小排行榜
+            updateLeaderboard('game-leaderboard', data.players);
+
+            if(lastRenderedQ !== qIndex || document.body.dataset.showingResult != String(data.showResult)) {
+                document.getElementById('question-text').innerText = q.q;
+                document.body.dataset.showingResult = data.showResult;
+                lastRenderedQ = qIndex;
+                for(let i=0; i<4; i++) {
+                    const b = document.getElementById(`opt-${i}`);
+                    b.innerText = q.options[i];
+                    b.className = 'btn-option';
+                    b.disabled = data.showResult || me.tempAns !== -1;
+                    if(data.showResult) {
+                        if(i === q.ans) b.classList.add('btn-correct');
+                        else if(me.tempAns === i) b.classList.add('btn-wrong');
+                    }
+                }
+                if(!data.showResult && me.tempAns === -1) startTimer(data.settings.timeLimit);
+                else clearInterval(timerInterval);
+            }
+            if(data.showResult) logHistory(q, me);
+            document.getElementById('status-msg').innerText = data.showResult ? "本題結束" : (me.tempAns !== -1 ? "等待對手..." : "");
+        }
+
         window.submitAnswer = (idx) => {
-            const limit = currentLocalData.settings.timeLimit * 1000;
             const elapsed = Date.now() - gameStartTime;
+            const limit = currentLocalData.settings.timeLimit * 1000;
             const points = Math.max(100, Math.floor(1000 * ((limit - elapsed) / limit)));
             update(ref(db, `rooms/${myRoomId}/players/${myId}`), { answer: idx, tempAns: idx, lastPoints: points });
-            document.getElementById('status-msg').innerText = "已鎖定！積分：" + points;
             if(isHost) setTimeout(checkRoundEnd, 200);
         };
 
@@ -188,35 +243,6 @@
             }, 3000);
         }
 
-        function smartRenderGame(data) {
-            showScreen('screen-game');
-            const qIndex = data.currentQIndex;
-            const q = data.questions[qIndex];
-            const me = data.players[myId];
-            document.getElementById('my-score').innerText = `${me.score} PTS`;
-            document.getElementById('q-counter').innerText = `Q${qIndex+1}/${data.questions.length}`;
-
-            if(lastRenderedQ !== qIndex || document.body.dataset.showingResult != String(data.showResult)) {
-                document.getElementById('question-text').innerText = q.q;
-                document.body.dataset.showingResult = data.showResult;
-                lastRenderedQ = qIndex;
-                for(let i=0; i<4; i++) {
-                    const b = document.getElementById(`opt-${i}`);
-                    b.innerText = q.options[i];
-                    b.className = 'btn-option';
-                    b.disabled = data.showResult || me.tempAns !== -1;
-                    if(data.showResult) {
-                        if(i === q.ans) b.classList.add('btn-correct');
-                        else if(me.tempAns === i) b.classList.add('btn-wrong');
-                    }
-                }
-                if(!data.showResult && me.tempAns === -1) startTimer(data.settings.timeLimit);
-                else clearInterval(timerInterval);
-            }
-            if(data.showResult) logHistory(q, me);
-            document.getElementById('status-msg').innerText = data.showResult ? "本題結束" : (me.tempAns !== -1 ? "等待對手..." : "");
-        }
-
         function logHistory(q, me) {
             if(sessionHistory.some(h => h.q === q.q)) return;
             sessionHistory.push({ q: q.q, correct: q.options[q.ans], mine: me.tempAns !== -1 ? q.options[me.tempAns] : "未作答", isCorrect: me.tempAns === q.ans });
@@ -224,23 +250,14 @@
 
         function renderResult(ps) {
             showScreen('screen-result');
-            const sorted = Object.values(ps).sort((a,b)=>b.score-a.score);
-            document.getElementById('result-list').innerHTML = sorted.map((p,i)=> `<div style="display:flex; justify-content:space-between; padding:12px; background:white; margin:10px; border-radius:15px; font-weight:bold;"><span>${i+1}. ${p.name}</span><span style="color:var(--primary-blue)">${p.score} PTS</span></div>`).join('');
-            
-            // 複習列表：錯題優先
+            updateLeaderboard('result-list', ps, true);
             const wrongOnes = sessionHistory.filter(h => !h.isCorrect);
             const correctOnes = sessionHistory.filter(h => h.isCorrect);
             document.getElementById('review-list').innerHTML = [...wrongOnes, ...correctOnes].map(h => `
                 <div class="review-item">
-                    <span class="review-word">${h.q}</span>
-                    ${h.isCorrect ? `<span style="color:#4CAF50;">✅ 正確：${h.correct}</span>` : `<span style="color:#EF5350;">❌ ${h.mine}</span> ➔ <span style="color:#4CAF50;">${h.correct}</span>`}
+                    <b>${h.q}</b><br>
+                    ${h.isCorrect ? `<span style="color:var(--success);">✅ ${h.correct}</span>` : `<span style="color:#EF5350;">❌ ${h.mine}</span> ➔ <span style="color:var(--success); font-weight:bold;">${h.correct}</span>`}
                 </div>`).join('');
-        }
-
-        function renderLobbyPlayers(playersObj) {
-            const listHtml = Object.values(playersObj).map(p => `<li style="padding:12px; background:white; margin:8px; border-radius:15px; font-weight:bold; color:var(--primary-blue);">👤 ${p.name}</li>`).join('');
-            const listEl = document.getElementById('lobby-player-list');
-            if(listEl.innerHTML !== listHtml) listEl.innerHTML = listHtml;
         }
 
         function showScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
