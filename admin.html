@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>遊戲題庫管理後台</title>
+    <style>
+        body { font-family: sans-serif; background: #f4f6f9; color: #333; margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .container { background: white; width: 100%; max-width: 800px; padding: 30px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        
+        h1 { color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 15px; }
+        
+        /* 表單區域 */
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; color: #555; }
+        input[type="text"] { width: 96%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 1rem; }
+        
+        .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; background: #f9f9f9; padding: 15px; border-radius: 8px; }
+        .radio-wrapper { display: flex; align-items: center; }
+        input[type="radio"] { transform: scale(1.5); margin-right: 10px; cursor: pointer; }
+        
+        /* 按鈕 */
+        .btn-add { background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 1rem; width: 100%; margin-top: 10px; }
+        .btn-add:hover { background: #218838; }
+        
+        .btn-save { background: #007bff; color: white; border: none; padding: 15px; border-radius: 50px; font-size: 1.2rem; position: fixed; bottom: 30px; right: 30px; box-shadow: 0 5px 15px rgba(0,123,255,0.4); cursor: pointer; font-weight: bold; }
+        .btn-save:hover { background: #0069d9; transform: translateY(-2px); }
+
+        /* 列表預覽 */
+        #q-list { margin-top: 30px; border-top: 2px solid #eee; padding-top: 20px; }
+        .q-item { background: #fff; border: 1px solid #eee; padding: 15px; margin-bottom: 10px; border-radius: 8px; position: relative; border-left: 5px solid #2c3e50; }
+        .q-item h3 { margin: 0 0 10px 0; font-size: 1.1rem; }
+        .q-item p { margin: 3px 0; color: #666; font-size: 0.9rem; }
+        .correct-ans { color: #28a745; font-weight: bold; }
+        .btn-del { position: absolute; top: 15px; right: 15px; background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>📝 題庫編輯器</h1>
+
+    <div class="form-group">
+        <label>題目內容</label>
+        <input type="text" id="inp-q" placeholder="例如：台灣最高的山是？">
+    </div>
+
+    <div class="options-grid">
+        <div class="radio-wrapper">
+            <input type="radio" name="ans" value="0" checked> 
+            <input type="text" id="opt-0" placeholder="選項 A">
+        </div>
+        <div class="radio-wrapper">
+            <input type="radio" name="ans" value="1"> 
+            <input type="text" id="opt-1" placeholder="選項 B">
+        </div>
+        <div class="radio-wrapper">
+            <input type="radio" name="ans" value="2"> 
+            <input type="text" id="opt-2" placeholder="選項 C">
+        </div>
+        <div class="radio-wrapper">
+            <input type="radio" name="ans" value="3"> 
+            <input type="text" id="opt-3" placeholder="選項 D">
+        </div>
+    </div>
+    <p style="color:#666; font-size:0.8rem; text-align:right;">* 請點擊圓圈選擇正確答案</p>
+    
+    <button class="btn-add" onclick="addItem()">➕ 加入列表</button>
+
+    <div id="q-list"></div>
+</div>
+
+<button class="btn-save" onclick="saveToCloud()">☁️ 儲存並發布到遊戲</button>
+
+<script type="module">
+    // -------------------------------------------------------------
+    // apiKey: "AIzaSyCqOMW0yUKq-i9GlwB2KqpCpJCNAoVHlIY",
+  authDomain: "voca-69.firebaseapp.com",
+  databaseURL: "https://voca-69-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "voca-69",
+  storageBucket: "voca-69.firebasestorage.app",
+  messagingSenderId: "960668024510",
+  appId: "1:960668024510:web:ef4148c6b0cad40dcf68ef",
+  measurementId: "G-YRFJRVQJWV"
+    // -------------------------------------------------------------
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getDatabase, ref, set, get } 
+    from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+    const firebaseConfig = {
+        apiKey: "你的_API_KEY",
+        authDomain: "你的專案.firebaseapp.com",
+        databaseURL: "https://你的專案-default-rtdb.firebaseio.com",
+        projectId: "你的專案ID",
+        storageBucket: "...",
+        messagingSenderId: "...",
+        appId: "..."
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    let questions = [];
+
+    // 初始化：先抓取目前的題庫
+    window.onload = async () => {
+        const snap = await get(ref(db, 'global_questions'));
+        if(snap.exists()) {
+            questions = snap.val();
+            renderList();
+        }
+    };
+
+    window.addItem = function() {
+        const q = document.getElementById('inp-q').value;
+        const opts = [
+            document.getElementById('opt-0').value,
+            document.getElementById('opt-1').value,
+            document.getElementById('opt-2').value,
+            document.getElementById('opt-3').value
+        ];
+        // 找出被選中的 radio
+        const correct = document.querySelector('input[name="ans"]:checked').value;
+
+        if(!q || opts.some(o => !o)) return alert("請完整填寫題目與選項");
+
+        questions.push({
+            q: q,
+            options: opts,
+            ans: parseInt(correct)
+        });
+
+        renderList();
+        
+        // 清空輸入框
+        document.getElementById('inp-q').value = "";
+        for(let i=0; i<4; i++) document.getElementById('opt-'+i).value = "";
+    }
+
+    window.deleteItem = function(index) {
+        questions.splice(index, 1);
+        renderList();
+    }
+
+    window.saveToCloud = function() {
+        if(questions.length === 0) return alert("列表是空的");
+        set(ref(db, 'global_questions'), questions)
+            .then(() => alert("✅ 題庫更新成功！所有新開的房間都會使用這組題目。"))
+            .catch(e => alert("錯誤：" + e));
+    }
+
+    function renderList() {
+        const container = document.getElementById('q-list');
+        container.innerHTML = questions.map((item, idx) => `
+            <div class="q-item">
+                <h3>${idx+1}. ${item.q}</h3>
+                <p>A: ${item.options[0]} ${item.ans==0?'<span class="correct-ans">(正解)</span>':''}</p>
+                <p>B: ${item.options[1]} ${item.ans==1?'<span class="correct-ans">(正解)</span>':''}</p>
+                <p>C: ${item.options[2]} ${item.ans==2?'<span class="correct-ans">(正解)</span>':''}</p>
+                <p>D: ${item.options[3]} ${item.ans==3?'<span class="correct-ans">(正解)</span>':''}</p>
+                <button class="btn-del" onclick="deleteItem(${idx})">刪除</button>
+            </div>
+        `).join('');
+    }
+</script>
+
+</body>
+</html>
