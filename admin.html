@@ -2,63 +2,276 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>字彙王 - 極速後台管理</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>字彙王 - Word King Live</title>
     <style>
-        body { font-family: sans-serif; background: #f0f2f5; padding: 40px; color: #1A237E; }
-        .card { background: white; max-width: 700px; margin: 0 auto; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
-        textarea { width: 100%; height: 300px; padding: 15px; border-radius: 10px; border: 1px solid #ddd; font-family: monospace; box-sizing: border-box; }
-        select { width: 100%; padding: 12px; margin: 10px 0; border-radius: 10px; border: 1px solid #ddd; }
-        button { background: #1A237E; color: white; border: none; padding: 15px 30px; border-radius: 10px; cursor: pointer; font-weight: bold; width: 100%; font-size: 1.1rem; }
-        .info { background: #E8EAF6; padding: 20px; border-radius: 15px; margin-bottom: 20px; }
+        :root { --primary-blue: #1A237E; --light-blue: #E8EAF6; --accent-orange: #FF7043; --success: #4CAF50; }
+        body { font-family: 'Inter', 'Noto Sans TC', sans-serif; background-color: var(--light-blue); margin: 0; padding: 15px; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+        
+        .screen { background: rgba(255, 255, 255, 0.98); padding: 25px; border-radius: 30px; box-shadow: 0 20px 50px rgba(26, 35, 126, 0.12); width: 100%; max-width: 450px; display: none; text-align: center; animation: slideUp 0.4s ease-out; position: relative; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .active { display: block; }
+
+        /* 排行榜樣式 */
+        .live-leaderboard { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; background: #f8f9ff; padding: 12px; border-radius: 20px; border: 1px solid #e0e4ff; }
+        .rank-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 15px; background: white; border-radius: 12px; transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .rank-item.is-me { border: 2px solid var(--primary-blue); background: #f0f4ff; }
+        .rank-name { font-weight: 700; font-size: 0.9rem; color: #333; }
+        .rank-score { font-weight: 900; color: var(--primary-blue); font-size: 0.9rem; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #ddd; margin-right: 8px; transition: 0.3s; }
+        .status-dot.done { background: var(--success); box-shadow: 0 0 8px var(--success); transform: scale(1.2); }
+
+        /* 元件 */
+        h1 { color: var(--primary-blue); font-size: 2rem; margin-bottom: 10px; }
+        input, select { width: 100%; padding: 15px; margin: 10px 0; border: 2px solid #EEE; border-radius: 15px; font-size: 1rem; box-sizing: border-box; }
+        button { background: var(--primary-blue); color: white; border: none; padding: 16px; width: 100%; font-size: 1.1rem; border-radius: 15px; cursor: pointer; margin: 10px 0; font-weight: 700; transition: 0.3s; }
+        button:hover { transform: translateY(-2px); }
+
+        .timer-container { width: 100%; height: 6px; background: #EEE; border-radius: 10px; margin: 15px 0; overflow: hidden; }
+        #timer-bar { width: 100%; height: 100%; background: var(--primary-blue); transition: width 0.1s linear; }
+        
+        .option-grid { display: grid; gap: 10px; margin-top: 15px; }
+        .btn-option { background: white; color: var(--primary-blue); border: 2px solid var(--light-blue); height: 60px; font-size: 1.1rem; border-radius: 15px; cursor: pointer; transition: 0.2s; font-weight: 500; }
+        .btn-correct { background: var(--success) !important; color: white !important; border-color: var(--success) !important; transform: scale(1.05); }
+        .btn-wrong { background: #EF5350 !important; color: white !important; border-color: #EF5350 !important; opacity: 0.6; }
+
+        .review-list { max-height: 200px; overflow-y: auto; background: #F9F9F9; border-radius: 15px; margin-top: 10px; text-align: left; }
+        .review-item { padding: 10px; border-bottom: 1px solid #EEE; font-size: 0.9rem; }
     </style>
 </head>
 <body>
 
-<div class="card">
-    <h1>🚀 字彙王 極速匯入後台</h1>
-    <div class="info">
-        <label><b>1. 選擇匯入難度：</b></label>
-        <select id="import-level">
-            <option value="lv4">Level 4 (進階單字)</option>
-            <option value="lv5">Level 5 (高階單字)</option>
-            <option value="lv6">Level 6 (挑戰單字)</option>
-        </select>
-        <label><b>2. 貼上 JSON 題目資料：</b></label>
-        <textarea id="bulk-json" placeholder='[...] 格式範例'></textarea>
-        <button onclick="bulkImport()">⚡ 執行大量匯入 (覆蓋該等級)</button>
+    <div id="screen-login" class="screen active">
+        <h1>字彙王</h1>
+        <input type="text" id="username" placeholder="你的暱稱" value="玩家1">
+        <button onclick="createRoom()">👑 創建戰局</button>
+        <div style="margin:10px; color:#999; font-size:0.8rem;">— 或 —</div>
+        <input type="tel" id="room-code-input" placeholder="房號密碼" maxlength="4">
+        <button onclick="joinRoom()" style="background:#5C6BC0;">⚔️ 加入挑戰</button>
     </div>
-    <div id="status"></div>
-</div>
 
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    <div id="screen-lobby" class="screen">
+        <h2>房號：<span id="display-room-code" style="color:var(--primary-blue)">----</span></h2>
+        <div id="host-controls" style="display:none; background:#F5F5F5; padding:15px; border-radius:20px; margin:15px 0; text-align:left;">
+            <select id="set-level"><option value="lv4">Level 4</option><option value="lv5" selected>Level 5</option><option value="lv6">Level 6</option></select>
+            <select id="set-time"><option value="5">5 秒</option><option value="10" selected>10 秒</option><option value="15">15 秒</option></select>
+            <select id="set-count"><option value="5">5 題</option><option value="10" selected>10 題</option><option value="20">20 題</option></select>
+        </div>
+        <div id="lobby-player-list" class="live-leaderboard"></div>
+        <button id="btn-start" onclick="startGame()" style="display:none; background: var(--accent-orange);">🔥 開始戰鬥！</button>
+        <div id="wait-msg" style="color:#666; margin-top:10px;">等待房主...</div>
+    </div>
 
-    const firebaseConfig = {
-        apiKey: "AIzaSyCqOMWOyUKq-i9GlwB2KqpCpJCNAOvHlIY",
-        authDomain: "voca-69.firebaseapp.com",
-        databaseURL: "https://voca-69-default-rtdb.asia-southeast1.firebasedatabase.app",
-        projectId: "voca-69",
-        storageBucket: "voca-69.firebasestorage.app",
-        messagingSenderId: "960668024510",
-        appId: "1:960668024510:web:ef4148c6b0cad40dcf68ef"
-    };
+    <div id="screen-game" class="screen">
+        <div id="game-leaderboard" class="live-leaderboard" style="flex-direction: row; overflow-x: auto; padding: 10px; gap: 10px; background: transparent; border: none; margin-bottom:0;"></div>
+        
+        <div class="timer-container"><div id="timer-bar"></div></div>
+        <h2 id="question-text" style="margin: 10px 0; color: var(--primary-blue); min-height:50px; display:flex; align-items:center; justify-content:center;">載入中...</h2>
+        
+        <div class="option-grid">
+            <button class="btn-option" onclick="submitAnswer(0)" id="opt-0"></button>
+            <button class="btn-option" onclick="submitAnswer(1)" id="opt-1"></button>
+            <button class="btn-option" onclick="submitAnswer(2)" id="opt-2"></button>
+            <button class="btn-option" onclick="submitAnswer(3)" id="opt-3"></button>
+        </div>
+        <div id="status-msg" style="margin-top:15px; font-weight:bold; color:var(--accent-orange); font-size:0.9rem;"></div>
+    </div>
 
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
+    <div id="screen-result" class="screen">
+        <h1>戰績結算</h1>
+        <div id="result-list" class="live-leaderboard"></div>
+        <h3 style="color: var(--primary-blue); margin-top: 15px; font-size: 1rem;">📘 單字複習</h3>
+        <div id="review-list" class="review-list"></div>
+        <button onclick="location.reload()" style="margin-top:20px;">🎮 再玩一局</button>
+    </div>
 
-    window.bulkImport = async () => {
-        const lv = document.getElementById('import-level').value;
-        const raw = document.getElementById('bulk-json').value;
-        const statusDiv = document.getElementById('status');
-        try {
-            const data = JSON.parse(raw);
-            if(!Array.isArray(data)) throw new Error("必須是 [ ] 格式");
-            await set(ref(db, 'global_questions/' + lv), data);
-            statusDiv.innerHTML = `<p style="color:green; font-weight:bold;">✅ 已將 ${data.length} 題存入 ${lv} 題庫。</p>`;
-            document.getElementById('bulk-json').value = "";
-        } catch(e) { statusDiv.innerHTML = `<p style="color:red;">❌ 失敗：${e.message}</p>`; }
-    }
-</script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, set, update, onValue, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCqOMWOyUKq-i9GlwB2KqpCpJCNAOvHlIY",
+            authDomain: "voca-69.firebaseapp.com",
+            databaseURL: "https://voca-69-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "voca-69",
+            storageBucket: "voca-69.firebasestorage.app",
+            messagingSenderId: "960668024510",
+            appId: "1:960668024510:web:ef4148c6b0cad40dcf68ef"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        let myId = "u_" + Math.random().toString(36).substr(2, 5);
+        let myRoomId, isHost = false, timerInterval, gameStartTime, lastRenderedQ = -1;
+        let sessionHistory = [], currentLocalData = null;
+
+        window.createRoom = async () => {
+            const name = document.getElementById('username').value || '玩家';
+            myRoomId = Math.floor(1000 + Math.random() * 9000).toString();
+            isHost = true;
+            await set(ref(db, 'rooms/' + myRoomId), { state: 'lobby', currentQIndex: -1, settings: { timeLimit: 10, maxQs: 10, level: 'lv5' }, players: { [myId]: { name, score: 0, answer: -1, tempAns: -1 } } });
+            initLobby();
+        };
+
+        window.joinRoom = async () => {
+            const name = document.getElementById('username').value || '玩家';
+            myRoomId = document.getElementById('room-code-input').value;
+            const snap = await get(ref(db, 'rooms/' + myRoomId));
+            if(snap.exists() && snap.val().state === 'lobby') {
+                await update(ref(db, `rooms/${myRoomId}/players/${myId}`), { name, score: 0, answer: -1, tempAns: -1 });
+                initLobby();
+            } else alert("戰局不存在或已開始");
+        };
+
+        function initLobby() {
+            document.getElementById('display-room-code').innerText = myRoomId;
+            showScreen('screen-lobby');
+            if(isHost) document.getElementById('host-controls').style.display = 'block', document.getElementById('btn-start').style.display = 'block', document.getElementById('wait-msg').style.display = 'none';
+
+            onValue(ref(db, 'rooms/' + myRoomId), (snap) => {
+                const data = snap.val();
+                if(!data) return;
+                currentLocalData = data;
+
+                if(data.state === 'lobby') updateLeaderboard('lobby-player-list', data.players);
+                if(data.state === 'playing') smartRenderGame(data);
+                if(data.state === 'finished') renderResult(data.players); // ★ 修正點：這裡之前寫錯了
+            });
+        }
+
+        function updateLeaderboard(elementId, playersObj, showRank = false) {
+            const container = document.getElementById(elementId);
+            const players = Object.values(playersObj).sort((a,b) => b.score - a.score);
+            
+            container.innerHTML = players.map((p, idx) => `
+                <div class="rank-item ${p.name === document.getElementById('username').value ? 'is-me' : ''}" style="order: ${idx};">
+                    <div style="display:flex; align-items:center;">
+                        ${!showRank ? `<div class="status-dot ${p.tempAns !== -1 ? 'done' : ''}"></div>` : `<span style="margin-right:8px; font-weight:900; color:var(--primary-blue);">#${idx+1}</span>`}
+                        <span class="rank-name">${p.name}</span>
+                    </div>
+                    <span class="rank-score">${p.score}</span>
+                </div>
+            `).join('');
+        }
+
+        window.startGame = async () => {
+            const level = document.getElementById('set-level').value;
+            const timeLimit = parseInt(document.getElementById('set-time').value);
+            const maxQs = parseInt(document.getElementById('set-count').value);
+            const qSnap = await get(ref(db, 'global_questions/' + level));
+            if(!qSnap.exists()) return alert("此等級題庫為空，請先至後台匯入！");
+            
+            const allQs = qSnap.val();
+            // 隨機抽題
+            const shuffled = allQs.sort(() => 0.5 - Math.random()).slice(0, maxQs);
+            
+            update(ref(db, 'rooms/' + myRoomId), { state: 'playing', currentQIndex: 0, settings: { timeLimit, maxQs, level }, questions: shuffled });
+        };
+
+        function smartRenderGame(data) {
+            showScreen('screen-game');
+            const qIndex = data.currentQIndex;
+            const q = data.questions[qIndex];
+            const me = data.players[myId];
+
+            updateLeaderboard('game-leaderboard', data.players);
+
+            if(lastRenderedQ !== qIndex || document.body.dataset.showingResult != String(data.showResult)) {
+                document.getElementById('question-text').innerText = q.q;
+                document.body.dataset.showingResult = data.showResult;
+                lastRenderedQ = qIndex;
+                
+                for(let i=0; i<4; i++) {
+                    const b = document.getElementById(`opt-${i}`);
+                    b.innerText = q.options[i];
+                    b.className = 'btn-option';
+                    b.disabled = data.showResult || me.tempAns !== -1;
+                    if(data.showResult) {
+                        if(i === q.ans) b.classList.add('btn-correct');
+                        else if(me.tempAns === i) b.classList.add('btn-wrong');
+                    }
+                }
+                
+                if(!data.showResult && me.tempAns === -1) startTimer(data.settings.timeLimit);
+                else clearInterval(timerInterval);
+            }
+            
+            if(data.showResult) logHistory(q, me);
+            document.getElementById('status-msg').innerText = data.showResult ? "本題結束" : (me.tempAns !== -1 ? "等待對手..." : "");
+        }
+
+        window.submitAnswer = (idx) => {
+            const limit = currentLocalData.settings.timeLimit * 1000;
+            const elapsed = Date.now() - gameStartTime;
+            const points = Math.max(100, Math.floor(1000 * ((limit - elapsed) / limit)));
+            update(ref(db, `rooms/${myRoomId}/players/${myId}`), { answer: idx, tempAns: idx, lastPoints: points });
+            if(isHost) setTimeout(checkRoundEnd, 300);
+        };
+
+        function startTimer(sec) {
+            clearInterval(timerInterval);
+            gameStartTime = Date.now();
+            timerInterval = setInterval(() => {
+                const elap = Date.now() - gameStartTime;
+                const rem = Math.max(0, 100 - (elap / (sec * 1000) * 100));
+                document.getElementById('timer-bar').style.width = rem + "%";
+                if(elap >= sec * 1000) { clearInterval(timerInterval); if(isHost) forceNext(); }
+            }, 100);
+        }
+
+        async function checkRoundEnd() {
+            const s = await get(ref(db, 'rooms/' + myRoomId));
+            const r = s.val();
+            if(Object.values(r.players).every(p => p.answer !== -1) && !r.showResult) processResult(r);
+        }
+
+        async function forceNext() {
+            const s = await get(ref(db, 'rooms/' + myRoomId));
+            if(!s.val().showResult) processResult(s.val());
+        }
+
+        function processResult(r) {
+            const q = r.questions[r.currentQIndex];
+            const up = { showResult: true };
+            Object.entries(r.players).forEach(([pid, p]) => {
+                if(p.answer === q.ans) up[`players/${pid}/score`] = p.score + (p.lastPoints || 0);
+                up[`players/${pid}/answer`] = -1;
+                up[`players/${pid}/lastPoints`] = 0;
+            });
+            update(ref(db, 'rooms/' + myRoomId), up);
+            
+            setTimeout(() => {
+                const next = r.currentQIndex + 1;
+                const playersReset = {};
+                Object.keys(r.players).forEach(pid => { playersReset[`players/${pid}/tempAns`] = -1; });
+                
+                if(next >= r.questions.length) {
+                    update(ref(db, 'rooms/' + myRoomId), { ...playersReset, state: 'finished' });
+                } else {
+                    update(ref(db, 'rooms/' + myRoomId), { ...playersReset, currentQIndex: next, showResult: false });
+                }
+            }, 3000);
+        }
+
+        function logHistory(q, me) {
+            if(sessionHistory.some(h => h.q === q.q)) return;
+            sessionHistory.push({ q: q.q, correct: q.options[q.ans], mine: me.tempAns !== -1 ? q.options[me.tempAns] : "未作答", isCorrect: me.tempAns === q.ans });
+        }
+
+        function renderResult(ps) {
+            showScreen('screen-result');
+            updateLeaderboard('result-list', ps, true);
+            const wrong = sessionHistory.filter(h => !h.isCorrect);
+            const right = sessionHistory.filter(h => h.isCorrect);
+            document.getElementById('review-list').innerHTML = [...wrong, ...right].map(h => `
+                <div class="review-item">
+                    <b style="color:#333;">${h.q}</b><br>
+                    ${h.isCorrect ? `<span style="color:var(--success);">✅ ${h.correct}</span>` : `<span style="color:#EF5350;">❌ ${h.mine}</span> ➔ <span style="color:var(--success); font-weight:bold;">${h.correct}</span>`}
+                </div>`).join('');
+        }
+
+        function showScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+    </script>
 </body>
 </html>
