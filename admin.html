@@ -16,28 +16,23 @@
 
 <div class="card">
     <h1>🚀 字彙王 極速匯入後台</h1>
-    
     <div class="info">
-        <label><b>1. 選擇要存入的難度等級：</b></label>
+        <label><b>1. 選擇匯入難度：</b></label>
         <select id="import-level">
             <option value="lv4">Level 4 (進階單字)</option>
             <option value="lv5">Level 5 (高階單字)</option>
             <option value="lv6">Level 6 (挑戰單字)</option>
         </select>
-        
         <label><b>2. 貼上 JSON 題目資料：</b></label>
-        <p style="font-size:0.8rem; color:#666;">* 此動作將覆蓋該難度原本的所有題目</p>
         <textarea id="bulk-json" placeholder='[...] 格式範例'></textarea>
-        
-        <button onclick="bulkImport()">⚡ 執行大量匯入</button>
+        <button onclick="bulkImport()">⚡ 執行大量匯入 (覆蓋該等級)</button>
     </div>
-
     <div id="status"></div>
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyCqOMWOyUKq-i9GlwB2KqpCpJCNAOvHlIY",
@@ -56,25 +51,14 @@
         const lv = document.getElementById('import-level').value;
         const raw = document.getElementById('bulk-json').value;
         const statusDiv = document.getElementById('status');
-        
-        statusDiv.innerHTML = "<p>正在上傳至雲端...</p>";
-
         try {
             const data = JSON.parse(raw);
-            if(!Array.isArray(data)) throw new Error("資料必須是 [ ] 陣列格式");
-            
-            // 存入指定的難度節點
+            if(!Array.isArray(data)) throw new Error("必須是 [ ] 格式");
             await set(ref(db, 'global_questions/' + lv), data);
-            
-            statusDiv.innerHTML = `<div style="color:green; font-weight:bold; border:2px solid green; padding:15px; border-radius:10px;">
-                ✅ 成功！已將 ${data.length} 題存入 ${lv} 題庫。
-            </div>`;
+            statusDiv.innerHTML = `<p style="color:green; font-weight:bold;">✅ 已將 ${data.length} 題存入 ${lv} 題庫。</p>`;
             document.getElementById('bulk-json').value = "";
-        } catch(e) {
-            statusDiv.innerHTML = `<p style="color:red;">❌ 失敗：${e.message}</p>`;
-        }
+        } catch(e) { statusDiv.innerHTML = `<p style="color:red;">❌ 失敗：${e.message}</p>`; }
     }
 </script>
-
 </body>
 </html>
