@@ -3,76 +3,127 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>知識大亂鬥 (除錯版)</title>
+    <title>字彙王 - Word King</title>
     <style>
+        :root {
+            --primary-blue: #1A237E; /* 深海藍 */
+            --light-blue: #E8EAF6;
+            --accent-orange: #FF7043;
+            --white: #FFFFFF;
+        }
+
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            color: #333;
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+            background-color: var(--light-blue);
+            background-image: radial-gradient(circle at 20% 20%, #e0e7ff 0%, transparent 40%),
+                              radial-gradient(circle at 80% 80%, #d1fae5 0%, transparent 40%);
             margin: 0; padding: 20px;
             min-height: 100vh; display: flex; align-items: center; justify-content: center;
+            overflow-x: hidden;
         }
+
         .screen {
-            background: rgba(255, 255, 255, 0.95);
-            padding: 30px; border-radius: 20px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-            width: 90%; max-width: 500px;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            padding: 40px; border-radius: 30px;
+            box-shadow: 0 20px 50px rgba(26, 35, 126, 0.1);
+            width: 100%; max-width: 450px;
             display: none; text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            animation: slideUp 0.6s cubic-bezier(0.23, 1, 0.32, 1);
         }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
         .active { display: block; }
-        input { width: 80%; padding: 12px; margin: 10px 0; border: 2px solid #ddd; border-radius: 10px; font-size: 1.1rem; }
-        button {
-            background: linear-gradient(to right, #ff9966, #ff5e62);
-            color: white; border: none; padding: 12px 25px;
-            font-size: 1.1rem; border-radius: 50px; cursor: pointer; margin: 10px;
-            font-weight: bold; width: 80%;
+
+        h1 { color: var(--primary-blue); font-size: 2.5rem; letter-spacing: -1px; margin-bottom: 30px; }
+        
+        input {
+            width: 100%; padding: 15px; margin: 10px 0;
+            border: 2px solid #E0E0E0; border-radius: 15px;
+            font-size: 1rem; box-sizing: border-box; transition: 0.3s;
+            background: #FAFAFA;
         }
-        .btn-option { background: white; color: #333; border: 2px solid #eee; margin: 5px; width: 45%; height: 80px; border-radius: 10px; }
-        .player-list { list-style: none; padding: 0; }
-        .player-list li { background: #f0f8ff; margin: 5px; padding: 10px; border-radius: 5px; }
+        input:focus { border-color: var(--primary-blue); outline: none; background: white; }
+
+        button {
+            background: var(--primary-blue); color: white; border: none;
+            padding: 16px; width: 100%; font-size: 1.1rem;
+            border-radius: 15px; cursor: pointer; margin: 10px 0;
+            font-weight: 700; transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(26, 35, 126, 0.2);
+        }
+        button:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(26, 35, 126, 0.3); }
+        button:active { transform: scale(0.98); }
+
+        /* 遊戲選項 */
+        .option-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 25px; }
+        .btn-option {
+            background: white; color: var(--primary-blue);
+            border: 2px solid var(--light-blue); height: 70px;
+            font-size: 1.1rem; border-radius: 18px; width: 100%; margin: 0;
+            box-shadow: 0 4px 0 var(--light-blue);
+        }
+        .btn-option:hover { background: var(--light-blue); border-color: var(--primary-blue); }
+        
+        .btn-correct { background: #4CAF50 !important; color: white !important; border-color: #4CAF50 !important; }
+        .btn-wrong { background: #EF5350 !important; color: white !important; border-color: #EF5350 !important; opacity: 0.7; }
+
+        .score-badge { background: var(--primary-blue); color: white; padding: 5px 15px; border-radius: 20px; font-weight: bold; }
+        .room-id-box { background: var(--light-blue); padding: 20px; border-radius: 20px; margin: 20px 0; }
+        .room-id-text { font-size: 3.5rem; font-weight: 900; color: var(--primary-blue); letter-spacing: 8px; }
     </style>
 </head>
 <body>
 
     <div id="screen-login" class="screen active">
-        <h1>知識大亂鬥</h1>
-        <p id="debug-status" style="color:red; font-weight:bold;">系統狀態：準備就緒</p>
-        <input type="text" id="username" placeholder="你的暱稱" value="玩家1">
-        <br>
-        <button onclick="createRoom()">👑 建立房間</button>
-        <br>
-        <input type="tel" id="room-code-input" placeholder="輸入 4 位數房號" maxlength="4">
-        <button onclick="joinRoom()" style="background: linear-gradient(to right, #4facfe, #00f2fe);">🚀 加入房間</button>
+        <h1 style="margin-top:0;">字彙王<br><span style="font-size:1rem; opacity:0.6;">WORD KING</span></h1>
+        <input type="text" id="username" placeholder="請輸入冒險者名稱" value="玩家1">
+        <button onclick="createRoom()">👑 創建戰局</button>
+        <div style="margin: 20px; color: #999;">— 或使用密碼加入 —</div>
+        <input type="tel" id="room-code-input" placeholder="4 位數密碼" maxlength="4" style="text-align:center;">
+        <button onclick="joinRoom()" style="background:transparent; color:var(--primary-blue); border:2px solid var(--primary-blue); box-shadow:none;">⚔️ 加入挑戰</button>
     </div>
 
     <div id="screen-lobby" class="screen">
-        <h2>房間代碼</h2>
-        <h1 id="display-room-code" style="font-size:3rem; color:#4facfe;">...</h1>
-        <ul id="lobby-player-list" class="player-list"></ul>
-        <button id="btn-start" onclick="startGame()" style="display:none;">🔥 開始遊戲</button>
-        <p id="wait-msg">等待房主...</p>
+        <h2>等待挑戰者...</h2>
+        <div class="room-id-box">
+            <div id="display-room-code" class="room-id-text">----</div>
+        </div>
+        <ul id="lobby-player-list" style="list-style:none; padding:0; margin: 20px 0;"></ul>
+        <button id="btn-start" onclick="startGame()" style="display:none; background: var(--accent-orange);">🔥 全員到齊，開戰！</button>
+        <p id="wait-msg" style="color:#666; font-style:italic;">等待房主發起挑戰...</p>
     </div>
 
     <div id="screen-game" class="screen">
-        <h2 id="q-counter">Q 1</h2>
-        <h3 id="question-text">載入中...</h3>
-        <div id="options-area">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <span id="q-counter" class="score-badge" style="background:#eee; color:#333;">Q1</span>
+            <span id="my-score" class="score-badge">0 PTS</span>
+        </div>
+        <h2 id="question-text" style="min-height: 80px; line-height: 1.4;">正在準備題目...</h2>
+        <div class="option-grid">
             <button class="btn-option" onclick="submitAnswer(0)" id="opt-0">A</button>
             <button class="btn-option" onclick="submitAnswer(1)" id="opt-1">B</button>
             <button class="btn-option" onclick="submitAnswer(2)" id="opt-2">C</button>
             <button class="btn-option" onclick="submitAnswer(3)" id="opt-3">D</button>
         </div>
-        <p id="status-msg"></p>
+        <div id="status-msg" style="margin-top:20px; font-weight:bold; color:var(--accent-orange);"></div>
     </div>
 
     <div id="screen-result" class="screen">
-        <h1>🏆 排名</h1>
-        <ul id="result-list" class="player-list"></ul>
-        <button onclick="location.reload()">回首頁</button>
+        <h1 style="font-size:3rem;">最終排行</h1>
+        <div id="result-list" style="text-align:left; margin:30px 0;"></div>
+        <button onclick="location.reload()">🎮 再來一局</button>
     </div>
 
     <script type="module">
-        // ★★★ 這是你圖片裡的設定，我直接填好了 ★★★
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, set, update, onValue, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
         const firebaseConfig = {
             apiKey: "AIzaSyCqOMWOyUKq-i9GlwB2KqpCpJCNAOvHlIY",
             authDomain: "voca-69.firebaseapp.com",
@@ -80,128 +131,76 @@
             projectId: "voca-69",
             storageBucket: "voca-69.firebasestorage.app",
             messagingSenderId: "960668024510",
-            appId: "1:960668024510:web:ef4148c6b0cad40dcf68ef",
-            measurementId: "G-YRFJRVQJWV"
+            appId: "1:960668024510:web:ef4148c6b0cad40dcf68ef"
         };
 
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, set, update, onValue, get } 
-        from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
 
-        let db;
-        try {
-            const app = initializeApp(firebaseConfig);
-            db = getDatabase(app);
-            console.log("Firebase initialized");
-        } catch (e) {
-            alert("Firebase 初始化失敗：" + e.message);
-        }
+        let myId = "u_" + Math.random().toString(36).substr(2, 5);
+        let myRoomId, isHost = false;
 
-        // 變數
-        let myId = "user_" + Math.floor(Math.random() * 100000);
-        let myRoomId = null;
-        let isHost = false;
-
-        // --- 錯誤攔截版 Create Room ---
-        window.createRoom = async function() {
-            const statusLabel = document.getElementById('debug-status');
-            statusLabel.innerText = "正在連線資料庫...";
+        window.createRoom = async () => {
+            const name = document.getElementById('username').value || '未知玩家';
+            myRoomId = Math.floor(1000 + Math.random() * 9000).toString();
+            isHost = true;
             
-            try {
-                const name = document.getElementById('username').value || '玩家';
-                myRoomId = Math.floor(1000 + Math.random() * 9000).toString();
-                isHost = true;
+            const qSnap = await get(ref(db, 'global_questions'));
+            const questions = qSnap.exists() ? qSnap.val() : [{q:"No questions found.", options:["","","",""], ans:0}];
 
-                // 測試連線
-                statusLabel.innerText = "正在讀取題庫...";
-                
-                // 這裡最容易出錯，我們加上 try catch
-                let questionBank = [];
-                try {
-                    const qSnap = await get(ref(db, 'global_questions'));
-                    if(qSnap.exists()) questionBank = qSnap.val();
-                    else questionBank = [{ q: "預設題目: 1+1=?", options: ["1","2","3","4"], ans: 1 }];
-                } catch(dbError) {
-                    throw new Error("資料庫讀取失敗！請檢查 Rules 是否已設為 true。\n詳細錯誤: " + dbError.message);
-                }
-
-                statusLabel.innerText = "正在建立房間...";
-                await set(ref(db, 'rooms/' + myRoomId), {
-                    state: 'lobby',
-                    currentQIndex: -1,
-                    showResult: false,
-                    players: { [myId]: { name: name, score: 0, answer: -1 } },
-                    questions: questionBank
-                });
-
-                enterLobby();
-
-            } catch (e) {
-                alert("❌ 錯誤發生：\n" + e.message);
-                statusLabel.innerText = "發生錯誤，請截圖給工程師";
-                console.error(e);
-            }
+            await set(ref(db, 'rooms/' + myRoomId), {
+                state: 'lobby',
+                currentQIndex: -1,
+                showResult: false,
+                players: { [myId]: { name, score: 0, answer: -1 } },
+                questions: questions
+            });
+            initLobby();
         };
 
-        window.joinRoom = async function() {
-            try {
-                const name = document.getElementById('username').value;
-                myRoomId = document.getElementById('room-code-input').value;
-                isHost = false;
-                
-                if(!myRoomId) throw new Error("請輸入房號");
+        window.joinRoom = async () => {
+            const name = document.getElementById('username').value || '未知玩家';
+            myRoomId = document.getElementById('room-code-input').value;
+            if(!myRoomId) return;
 
-                const snapshot = await get(ref(db, 'rooms/' + myRoomId));
-                if (snapshot.exists() && snapshot.val().state === 'lobby') {
-                    await update(ref(db, `rooms/${myRoomId}/players/${myId}`), {
-                        name: name, score: 0, answer: -1
-                    });
-                    enterLobby();
-                } else {
-                    alert("房間不存在或遊戲已開始");
-                }
-            } catch(e) {
-                alert("加入失敗：" + e.message);
-            }
+            const snap = await get(ref(db, 'rooms/' + myRoomId));
+            if(snap.exists() && snap.val().state === 'lobby') {
+                await update(ref(db, `rooms/${myRoomId}/players/${myId}`), { name, score: 0, answer: -1 });
+                initLobby();
+            } else alert("戰局不存在或已開始");
         };
 
-        function enterLobby() {
+        function initLobby() {
             document.getElementById('display-room-code').innerText = myRoomId;
             showScreen('screen-lobby');
-            if(isHost) {
-                document.getElementById('btn-start').style.display = 'inline-block';
-                document.getElementById('wait-msg').style.display = 'none';
-            }
-            onValue(ref(db, 'rooms/' + myRoomId), (snapshot) => {
-                const data = snapshot.val();
-                if (!data) return;
-                
-                // 更新玩家列表
-                const list = Object.values(data.players);
-                document.getElementById('lobby-player-list').innerHTML = 
-                    list.map(p => `<li>${p.name} (分數: ${p.score})</li>`).join('');
+            if(isHost) document.getElementById('btn-start').style.display = 'block';
 
-                if (data.state === 'playing') renderGame(data);
-                else if (data.state === 'finished') renderResult(data.players);
+            onValue(ref(db, 'rooms/' + myRoomId), (snap) => {
+                const data = snap.val();
+                if(!data) return;
+                
+                const players = Object.values(data.players);
+                document.getElementById('lobby-player-list').innerHTML = players.map(p => 
+                    `<li style="background:white; padding:12px; margin:8px; border-radius:12px; box-shadow:0 2px 5px rgba(0,0,0,0.05); font-weight:bold;">👤 ${p.name}</li>`).join('');
+
+                if(data.state === 'playing') renderGame(data);
+                if(data.state === 'finished') renderResult(data.players);
             });
         }
 
-        window.startGame = function() {
-            update(ref(db, 'rooms/' + myRoomId), { state: 'playing', currentQIndex: 0, showResult: false });
-        };
+        window.startGame = () => update(ref(db, 'rooms/' + myRoomId), { state: 'playing', currentQIndex: 0 });
 
-        window.submitAnswer = function(idx) {
+        window.submitAnswer = (idx) => {
             update(ref(db, `rooms/${myRoomId}/players/${myId}`), { answer: idx });
-            document.getElementById('status-msg').innerText = "已回答，等待對手...";
-            if(isHost) checkAllAnswered();
+            document.getElementById('status-msg').innerText = "答案已鎖定，等待中...";
+            if(isHost) checkAnswers();
         };
 
-        async function checkAllAnswered() {
+        async function checkAnswers() {
             setTimeout(async () => {
                 const s = await get(ref(db, 'rooms/' + myRoomId));
                 const r = s.val();
                 if(Object.values(r.players).every(p => p.answer !== -1) && !r.showResult) {
-                    // 結算
                     const q = r.questions[r.currentQIndex];
                     const up = { showResult: true };
                     Object.entries(r.players).forEach(([pid, p]) => {
@@ -209,10 +208,10 @@
                         up[`players/${pid}/answer`] = -1;
                     });
                     await update(ref(db, 'rooms/' + myRoomId), up);
-                    // 下一題倒數
                     setTimeout(() => {
-                         if (r.currentQIndex + 1 >= r.questions.length) update(ref(db, 'rooms/' + myRoomId), { state: 'finished' });
-                         else update(ref(db, 'rooms/' + myRoomId), { currentQIndex: r.currentQIndex + 1, showResult: false });
+                        const next = r.currentQIndex + 1;
+                        if(next >= r.questions.length) update(ref(db, 'rooms/' + myRoomId), { state: 'finished' });
+                        else update(ref(db, 'rooms/' + myRoomId), { currentQIndex: next, showResult: false });
                     }, 3000);
                 }
             }, 500);
@@ -221,29 +220,36 @@
         function renderGame(r) {
             showScreen('screen-game');
             const q = r.questions[r.currentQIndex];
-            document.getElementById('q-counter').innerText = `第 ${r.currentQIndex+1} 題`;
+            const me = r.players[myId];
+            document.getElementById('q-counter').innerText = `Q${r.currentQIndex+1}`;
             document.getElementById('question-text').innerText = q.q;
+            document.getElementById('my-score').innerText = `${me.score} PTS`;
             
             for(let i=0; i<4; i++) {
-                const btn = document.getElementById(`opt-${i}`);
-                btn.innerText = q.options[i];
-                btn.disabled = false;
-                btn.style.background = "white";
+                const b = document.getElementById(`opt-${i}`);
+                b.innerText = q.options[i];
+                b.className = 'btn-option';
+                b.disabled = r.showResult || me.answer !== -1;
                 if(r.showResult) {
-                    btn.disabled = true;
-                    if(i === q.ans) btn.style.background = "#90ee90";
+                    if(i === q.ans) b.classList.add('btn-correct');
+                    else if(me.answer === i) b.classList.add('btn-wrong');
                 }
             }
+            document.getElementById('status-msg').innerText = r.showResult ? "準備下一題..." : (me.answer !== -1 ? "等待對手..." : "");
         }
 
-        function renderResult(players) {
+        function renderResult(ps) {
             showScreen('screen-result');
-            document.getElementById('result-list').innerHTML = 
-                Object.values(players).sort((a,b)=>b.score-a.score).map((p,i)=>`<li>#${i+1} ${p.name} : ${p.score}</li>`).join('');
+            const sorted = Object.values(ps).sort((a,b)=>b.score-a.score);
+            document.getElementById('result-list').innerHTML = sorted.map((p,i)=>
+                `<div style="display:flex; justify-content:space-between; padding:15px; background:${i===0?'var(--light-blue)':'white'}; border-radius:12px; margin-bottom:10px; font-weight:bold;">
+                    <span>${i===0?'🏆':i+1+'.'} ${p.name}</span>
+                    <span style="color:var(--primary-blue)">${p.score}</span>
+                </div>`).join('');
         }
 
         function showScreen(id) {
-            document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById(id).classList.add('active');
         }
     </script>
